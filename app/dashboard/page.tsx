@@ -112,96 +112,93 @@ export default function Dashboard() {
   const [dismissedText, setDismissedText] = useState<string | null>(null);
   const lastSpeakKey = useRef<string>("");
 
-  // Load tasks + user from sessionStorage
+  // Load tasks from Supabase
   useEffect(() => {
-    // ── User switch detection ──────────────────────────────────────────
-    const params = new URLSearchParams(window.location.search);
-    const incomingUid = params.get("uid");
-    const storedUid = sessionStorage.getItem("clearhead_current_user");
+    const loadTasks = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) { setMounted(true); return; }
 
-    const clearStaleData = () => {
-      sessionStorage.clear();
-      [
-        "clearhead_tasks", "BrainDump_tasks",
-        "BrainDump-triage", "clearhead_triage",
-        "clearhead_display_name", "clearhead_voice_enabled",
-        "clearhead_voice_name", "clearhead_panic_url",
-        "clearhead_autodate", "clearhead_show_past",
-        "clearhead_clarify_enabled",
-      ].forEach((k) => { try { localStorage.removeItem(k); } catch {} });
-    };
+      // Set user name from metadata
+      const displayName = user.user_metadata?.display_name || user.email?.split("@")[0] || "User";
+      setUserName(displayName);
 
-    if (incomingUid) {
-      if (storedUid && storedUid !== incomingUid) {
-        clearStaleData();
-      }
-      sessionStorage.setItem("clearhead_current_user", incomingUid);
-      window.history.replaceState({}, "", "/dashboard");
-    } else if (!storedUid) {
-      clearStaleData();
-    }
-    // ── End user switch detection ──────────────────────────────────────
+      const { data, error } = await supabase
+        .from("tasks")
+        .select("*")
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: true });
 
-    // ── Storage key migration ──────────────────────────────────────────
-    const migrations: [string, string][] = [
-      ["BrainDump_tasks", "clearhead_tasks"],
-      ["BrainDump-triage", "clearhead_triage"],
-      ["BrainDump_checkins", "clearhead_checkins"],
-      ["BrainDump_user", "clearhead_user"],
-    ];
-    migrations.forEach(([oldKey, newKey]) => {
-      try {
-        const old = sessionStorage.getItem(oldKey);
-        if (old && !sessionStorage.getItem(newKey)) {
-          sessionStorage.setItem(newKey, old);
-        }
-        sessionStorage.removeItem(oldKey);
-      } catch {}
-    });
-    // ── End migration ──────────────────────────────────────────────────
-
-    try {
-      const stored = sessionStorage.getItem("clearhead_tasks");
-      if (stored) {
-        const raw = JSON.parse(stored);
-        setTasks(Array.isArray(raw) ? raw.map(migrateTask) : MOCK_TASKS);
+      if (error) {
+        console.error("Failed to load tasks:", error.message);
+        setTasks(MOCK_TASKS);
+      } else if (data && data.length > 0) {
+        setTasks(data.map((row: Record<string, unknown>) => ({
+          id: String(row.id),
+          text: String(row.Name ?? ""),
+          category: (["now", "later", "drop"].includes(row.category as string) ? row.category : "later") as Category,
+          status: row.completed ? "done" as const : "pending" as const,
+          source: (["voice", "file", "typed"].includes(row.source as string) ? row.source : "typed") as Task["source"],
+          due_date: row.due_date ? String(row.due_date).split("T")[0] : undefined,
+        })));
       } else {
         setTasks(MOCK_TASKS);
       }
-    } catch {
-      setTasks(MOCK_TASKS);
-    }
-    try {
-      const name = sessionStorage.getItem("clearhead_user");
-      if (name) setUserName(name);
-    } catch {}
-    setMounted(true);
-  }, []);
+      setMounted(true);
+    };
+    loadTasks();
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Persist tasks
-  useEffect(() => {
-    if (mounted) {
-      sessionStorage.setItem("clearhead_tasks", JSON.stringify(tasks));
-    }
-  }, [tasks, mounted]);
-
-  useEffect(() => {
-  const checkUser = async () => {
-    const { data: { user } } = await supabase.auth.getUser()
-    console.log("Current logged in user:", user)
-    console.log("Email:", user?.email)
-    console.log("Provider:", user?.app_metadata?.provider)
-  }
-
-  checkUser()
-}, [])
-
-  // ── Task mutations ───────────────────────────────────────────────────
-  const updateTask = (id: string, updates: Partial<Task>) =>
+  // ── Task mutations (synced to Supabase) ─────────────────────────────
+  const updateTask = (id: string, updates: Partial<Task>) => {
     setTasks((prev) => prev.map((t) => (t.id === id ? { ...t, ...updates } : t)));
 
-  const addTasks = (newTasks: Task[]) =>
-    setTasks((prev) => [...prev, ...newTasks.map((t) => migrateTask(t as unknown as Record<string, unknown>))]);
+    // Sync to Supabase in background
+    const patch: Record<string, unknown> = {};
+    if (updates.text !== undefined) patch.Name = updates.text;
+    if (updates.status !== undefined) patch.completed = updates.status === "done";
+    if (updates.category !== undefined) patch.category = updates.category;
+    if (updates.source !== undefined) patch.source = updates.source;
+    if (updates.due_date !== undefined) patch.due_date = updates.due_date || null;
+
+    supabase.from("tasks").update(patch).eq("id", Number(id)).then(({ error }) => {
+      if (error) console.error("Failed to sync task update:", error.message);
+    });
+  };
+
+  const addTasks = async (newTasks: Task[]) => {
+    const migrated = newTasks.map((t) => migrateTask(t as unknown as Record<string, unknown>));
+
+    // Insert into Supabase and use returned IDs
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user) {
+      const rows = migrated.map((t) => ({
+        Name: t.text,
+        completed: t.status === "done",
+        category: t.category,
+        source: t.source,
+        due_date: t.due_date || null,
+        user_id: user.id,
+      }));
+
+      const { data, error } = await supabase.from("tasks").insert(rows).select();
+      if (!error && data) {
+        const dbTasks: Task[] = data.map((row: Record<string, unknown>) => ({
+          id: String(row.id),
+          text: String(row.Name ?? ""),
+          category: (row.category as Category) ?? "later",
+          status: row.completed ? "done" as const : "pending" as const,
+          source: (row.source as Task["source"]) ?? "typed",
+          due_date: row.due_date ? String(row.due_date).split("T")[0] : undefined,
+        }));
+        setTasks((prev) => [...prev, ...dbTasks]);
+        return;
+      }
+      if (error) console.error("Failed to insert tasks:", error.message);
+    }
+
+    // Fallback: add locally without DB IDs
+    setTasks((prev) => [...prev, ...migrated]);
+  };
 
   // ── Derived state ────────────────────────────────────────────────────
   const activeTasks = useMemo(
