@@ -1,19 +1,51 @@
 import { NextResponse } from "next/server";
+import openai from "@/lib/openai";
+import { FOCUS_SYSTEM_PROMPT } from "@/lib/prompts";
+
+const FALLBACK_STEPS = [
+  "Open the relevant file or tool to get started",
+  "Complete the first small concrete action",
+  "Work through the main body of the task",
+  "Review what you have done so far",
+  "Save, send, or close out the task",
+];
 
 export async function POST(request: Request) {
-  const { task } = await request.json();
+  try {
+    const body = await request.json();
+    const { task } = body as { task: string };
 
-  // TODO: replace with a real API call 
-  // context-specific micro-steps for the given task.
-  const truncated = task ? String(task).slice(0, 50) : "this task";
+    if (!task || task.trim().length === 0) {
+      return NextResponse.json({ steps: FALLBACK_STEPS });
+    }
 
-  const steps = [
-    `Open the document or context you need for: "${truncated}"`,
-    "Identify the single first action completable in under 5 minutes",
-    "Start — commit to that first action only",
-    "Complete one full section or milestone",
-    "Note what remains before closing the session",
-  ];
+    const completion = await openai.chat.completions.create({
+      model: "gpt-4o-mini",
+      messages: [
+        { role: "system", content: FOCUS_SYSTEM_PROMPT },
+        { role: "user", content: `Task: ${task}` },
+      ],
+      max_tokens: 512,
+      temperature: 0.3,
+      response_format: { type: "json_object" },
+    });
 
-  return NextResponse.json({ steps });
+    const raw = completion.choices[0]?.message?.content ?? "{}";
+    const parsed = JSON.parse(raw) as { steps?: unknown[] };
+
+    if (!Array.isArray(parsed.steps) || parsed.steps.length === 0) {
+      return NextResponse.json({ steps: FALLBACK_STEPS });
+    }
+
+    // Ensure exactly 5 steps
+    const steps = parsed.steps.slice(0, 5).map(String);
+    while (steps.length < 5) {
+      steps.push(FALLBACK_STEPS[steps.length]);
+    }
+
+    return NextResponse.json({ steps });
+  } catch (error) {
+    console.error("[/api/focus] OpenAI error:", error);
+    return NextResponse.json({ steps: FALLBACK_STEPS });
+  }
 }
