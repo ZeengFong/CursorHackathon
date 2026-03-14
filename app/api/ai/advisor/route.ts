@@ -19,8 +19,13 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "tasks must be an array" }, { status: 400 });
   }
 
+  console.log("[advisor] STT input →", body.userMessage);
+
   try {
     const result = await getAdvisorResponse(body);
+    console.log("[advisor] reply →", result.reply);
+    console.log("[advisor] displaySummary →", result.displaySummary);
+    console.log("[advisor] referencedTaskNames →", result.referencedTaskNames);
     return NextResponse.json(result);
   } catch (err) {
     const message = err instanceof Error ? err.message : "Unknown error";

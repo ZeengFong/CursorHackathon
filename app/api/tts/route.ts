@@ -24,8 +24,12 @@ export async function POST(req: NextRequest) {
     );
   }
 
+  console.log("[tts] text →", body.text);
+  console.log("[tts] voiceId →", body.voiceId ?? "default");
+
   try {
     const result = await generateSpeech(body);
+    console.log("[tts] audio size →", Math.round(result.audioBase64.length * 0.75 / 1024), "KB");
     return NextResponse.json(result);
   } catch (err) {
     const message = err instanceof Error ? err.message : "Unknown error";

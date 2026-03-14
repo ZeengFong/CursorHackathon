@@ -2,6 +2,19 @@ import { TaskData } from "../types";
 
 type TaskWithCompletion = TaskData & { completed: boolean };
 
+function buildDateContext(currentTime: string): string {
+  const now = new Date(currentTime);
+  const dayNames = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+  const lines: string[] = [`Today is ${dayNames[now.getDay()]}, ${now.toISOString().slice(0, 10)}.`];
+  lines.push("Upcoming days:");
+  for (let i = 1; i <= 7; i++) {
+    const d = new Date(now);
+    d.setDate(now.getDate() + i);
+    lines.push(`  ${dayNames[d.getDay()]} = ${d.toISOString().slice(0, 10)}`);
+  }
+  return lines.join("\n");
+}
+
 export function buildAdvisorPrompt(
   tasks: TaskWithCompletion[],
   currentTime: string
@@ -15,7 +28,11 @@ export function buildAdvisorPrompt(
     })
     .join("\n");
 
-  return `You are a calm, helpful task advisor. The current time is ${currentTime}.
+  return `You are a calm, helpful task advisor.
+
+${buildDateContext(currentTime)}
+
+When the user mentions a day name (e.g. "Wednesday", "Friday"), resolve it using the date table above — never guess.
 
 The user's current tasks are:
 ${taskList || "No tasks yet."}
@@ -26,7 +43,7 @@ Rules:
 - Keep reply natural and calming — 1 to 3 sentences, as if speaking to a friend.
 - Keep displaySummary short and screen-friendly — a single line.
 - In referencedTaskNames, list the exact task names you mentioned in your reply so the frontend can highlight them.
-- Use the task data and current time to give accurate, grounded answers.
+- Always use the date table above to resolve day names accurately.
 
 You MUST return ONLY valid JSON matching this exact shape:
 {

@@ -2,40 +2,40 @@ import { TTS_CONFIG } from "./config";
 import { TTSRequest, TTSResponse } from "./types";
 
 export async function generateSpeech(request: TTSRequest): Promise<TTSResponse> {
-  const apiKey = process.env.ELEVENLABS_API_KEY;
+  const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) {
-    throw new Error("ELEVENLABS_API_KEY is not set");
+    throw new Error("OPENAI_API_KEY is not set");
   }
 
-  const resolvedVoiceId =
+  const voice =
     (request.voiceId && TTS_CONFIG.voicePresets[request.voiceId]) ||
     request.voiceId ||
-    TTS_CONFIG.defaultVoiceId;
+    TTS_CONFIG.defaultVoice;
 
   const model = request.model ?? TTS_CONFIG.defaultModel;
 
-  const response = await fetch(`${TTS_CONFIG.apiUrl}/${resolvedVoiceId}`, {
+  const response = await fetch("https://api.openai.com/v1/audio/speech", {
     method: "POST",
     headers: {
-      "xi-api-key": apiKey,
+      Authorization: `Bearer ${apiKey}`,
       "Content-Type": "application/json",
-      Accept: "audio/mpeg",
     },
     body: JSON.stringify({
-      text: request.text,
-      model_id: model,
+      model,
+      input: request.text,
+      voice,
+      response_format: "mp3",
     }),
   });
 
   if (!response.ok) {
     const error = await response.text();
-    throw new Error(`ElevenLabs API error ${response.status}: ${error}`);
+    throw new Error(`OpenAI TTS error ${response.status}: ${error}`);
   }
 
   const buffer = await response.arrayBuffer();
   const audioBase64 = Buffer.from(buffer).toString("base64");
 
-  // Rough estimate: ~15 chars per second of speech
   const durationEstimate = Math.round(request.text.length / 15);
 
   return {
