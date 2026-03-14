@@ -38,14 +38,6 @@ function migrateTask(raw: Record<string, unknown>): Task {
   };
 }
 
-const MOCK_TASKS: Task[] = [
-  { id: "1", text: "Finish the Q2 report before Sarah needs it",   category: "now",   status: "pending", source: "typed" },
-  { id: "2", text: "Reply to Marc about the proposal deadline",     category: "now",   status: "pending", source: "typed" },
-  { id: "3", text: "Review the onboarding docs pull request",       category: "later", status: "pending", source: "typed" },
-  { id: "4", text: "Book the dentist appointment",                  category: "later", status: "pending", source: "typed" },
-  { id: "5", text: "Ping Alex about the outstanding invoice",       category: "later", status: "pending", source: "typed" },
-  { id: "6", text: "Reorganise the downloads folder",               category: "drop",  status: "pending", source: "typed" },
-];
 
 // ── Mobile nav items ───────────────────────────────────────────────────
 const MODE_NAV: { id: AppMode; label: string; icon: React.ReactNode }[] = [
@@ -130,7 +122,7 @@ export default function Dashboard() {
 
       if (error) {
         console.error("Failed to load tasks:", error.message);
-        setTasks(MOCK_TASKS);
+        setTasks([]);
       } else if (data && data.length > 0) {
         setTasks(data.map((row: Record<string, unknown>) => ({
           id: String(row.id),
@@ -141,7 +133,7 @@ export default function Dashboard() {
           due_date: row.due_date ? String(row.due_date).split("T")[0] : undefined,
         })));
       } else {
-        setTasks(MOCK_TASKS);
+        setTasks([]);
       }
       setMounted(true);
     };

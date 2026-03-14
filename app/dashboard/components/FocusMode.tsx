@@ -11,13 +11,6 @@ const TOTAL = 25 * 60;
 const RADIUS = 70;
 const CIRCUMFERENCE = 2 * Math.PI * RADIUS;
 
-const MOCK_STEPS = [
-  "Gather the materials and context you need",
-  "Identify the very first action you can take",
-  "Start — even an imperfect start counts",
-  "Complete one section or milestone",
-  "Note what still needs doing before you close",
-];
 
 function SkeletonSteps() {
   return (
@@ -64,10 +57,10 @@ export default function FocusMode({ tasks }: Props) {
         setSteps(
           Array.isArray(data.steps) && data.steps.length > 0
             ? data.steps
-            : MOCK_STEPS,
+            : [],
         );
       })
-      .catch(() => setSteps(MOCK_STEPS));
+      .catch(() => setSteps([]));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTask?.id]);
 
