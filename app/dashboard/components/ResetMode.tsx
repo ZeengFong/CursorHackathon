@@ -35,7 +35,7 @@ export default function ResetMode({ speak, voiceEnabled }: Props) {
   const handleSave = () => {
     try {
       sessionStorage.setItem(
-        "clearhead_checkins",
+        "BrainDump_checkins",
         JSON.stringify({ ...answers, ts: Date.now() })
       );
     } catch {}

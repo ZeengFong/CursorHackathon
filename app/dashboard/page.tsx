@@ -106,14 +106,14 @@ export default function Dashboard() {
   const [tasks, setTasks]               = useState<Task[]>([]);
   const [mounted, setMounted]           = useState(false);
   const [voiceEnabled, setVoiceEnabled] = useState(false);
-  const [userName, setUserName]         = useState("ClearHead");
+  const [userName, setUserName]         = useState("BrainDump");
   const [dismissedText, setDismissedText] = useState<string | null>(null);
   const lastSpeakKey = useRef<string>("");
 
   // Load tasks + user from sessionStorage
   useEffect(() => {
     try {
-      const stored = sessionStorage.getItem("clearhead_tasks");
+      const stored = sessionStorage.getItem("BrainDump_tasks");
       if (stored) {
         const raw = JSON.parse(stored);
         setTasks(Array.isArray(raw) ? raw.map(migrateTask) : MOCK_TASKS);
@@ -124,7 +124,7 @@ export default function Dashboard() {
       setTasks(MOCK_TASKS);
     }
     try {
-      const name = sessionStorage.getItem("clearhead_user");
+      const name = sessionStorage.getItem("BrainDump_user");
       if (name) setUserName(name);
     } catch {}
     setMounted(true);
@@ -133,7 +133,7 @@ export default function Dashboard() {
   // Persist tasks
   useEffect(() => {
     if (mounted) {
-      sessionStorage.setItem("clearhead_tasks", JSON.stringify(tasks));
+      sessionStorage.setItem("BrainDump_tasks", JSON.stringify(tasks));
     }
   }, [tasks, mounted]);
 

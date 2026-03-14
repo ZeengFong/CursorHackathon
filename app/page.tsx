@@ -126,7 +126,7 @@ export default function Home() {
           className="mt-6 font-sans text-base sm:text-[17px] leading-relaxed text-[#A0A8B8] max-w-sm opacity-0 animate-fade-up"
           style={{ animationDelay: "150ms", animationFillMode: "both" }}
         >
-          Type, speak, or drop files. ClearHead turns the chaos in your head
+          Type, speak, or drop files. BrainDump turns the chaos in your head
           into a clear action plan.
         </p>
 

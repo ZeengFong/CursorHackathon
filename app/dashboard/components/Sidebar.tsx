@@ -98,7 +98,7 @@ export default function Sidebar({ mode, setMode, taskCount, voiceEnabled, setVoi
   const handlePanic = () => {
     const url =
       typeof window !== "undefined"
-        ? (localStorage.getItem("clearhead_panic_url") ?? "https://poki.com/en/g/subway-surfers")
+        ? (localStorage.getItem("BrainDump_panic_url") ?? "https://poki.com/en/g/subway-surfers")
         : "https://poki.com/en/g/subway-surfers";
     window.open(url, "_blank");
   };

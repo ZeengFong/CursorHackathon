@@ -17,7 +17,7 @@ export default function InputCard() {
     });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const data = await res.json();
-    sessionStorage.setItem("clearhead_tasks", JSON.stringify(data.tasks ?? []));
+    sessionStorage.setItem("BrainDump_tasks", JSON.stringify(data.tasks ?? []));
     router.push("/dashboard");
   };
 

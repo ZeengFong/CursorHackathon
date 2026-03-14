@@ -1,6 +1,6 @@
 {
   "manifest_version": 3,
-  "name": "ClearHead",
+  "name": "BrainDump",
   "version": "1.0",
   "description": "Dump your brain. Get clarity.",
 
@@ -24,12 +24,12 @@
         "default": "Ctrl+Shift+Space",
         "mac": "MacCtrl+Shift+Space"
       },
-      "description": "Toggle ClearHead overlay"
+      "description": "Toggle BrainDump overlay"
     }
   },
 
   "action": {
-    "default_title": "ClearHead",
+    "default_title": "BrainDump",
     "default_icon": {
       "16": "icons/16.png",
       "48": "icons/48.png",

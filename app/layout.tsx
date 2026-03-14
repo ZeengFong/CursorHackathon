@@ -15,9 +15,9 @@ const sora = Sora({
 });
 
 export const metadata: Metadata = {
-  title: "ClearHead — Cognitive Load Manager",
+  title: "BrainDump — Cognitive Load Manager",
   description:
-    "Type, speak, or drop files. ClearHead turns the chaos in your head into a clear action plan.",
+    "Type, speak, or drop files. BrainDump turns the chaos in your head into a clear action plan.",
 };
 
 export default function RootLayout({

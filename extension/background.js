@@ -1,4 +1,4 @@
-// ── ClearHead background service worker ───────────────────────────────
+// ── BrainDump background service worker ───────────────────────────────
 
 function sendToggle(tabId) {
   chrome.tabs.sendMessage(tabId, { action: 'toggle' }, () => {
