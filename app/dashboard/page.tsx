@@ -1,0 +1,237 @@
+"use client";
+
+import { useState, useEffect, useRef, useMemo } from "react";
+import Sidebar from "./components/Sidebar";
+import TriageMode from "./components/TriageMode";
+import FocusMode from "./components/FocusMode";
+import DumpMode from "./components/DumpMode";
+import ResetMode from "./components/ResetMode";
+import MascotOrb from "./components/MascotOrb";
+import CalendarMode from "./components/CalendarMode";
+
+// ── Types ──────────────────────────────────────────────────────────────
+export type AppMode = "dump" | "triage" | "focus" | "reset" | "calendar";
+export type Category = "now" | "later" | "drop";
+
+export interface Task {
+  id: string;
+  text: string;
+  category: Category;
+  status: "pending" | "done";
+  source: "voice" | "file" | "typed";
+  due_date?: string;
+}
+
+// ── Migrate old task shape → new ──────────────────────────────────────
+function migrateTask(raw: Record<string, unknown>): Task {
+  const validCategories = new Set(["now", "later", "drop"]);
+  const validSources    = new Set(["voice", "file", "typed"]);
+  return {
+    id:       String(raw.id ?? crypto.randomUUID()),
+    text:     String(raw.text ?? ""),
+    category: validCategories.has(raw.category as string) ? (raw.category as Category) : "later",
+    status:   raw.status === "done" || raw.done === true ? "done" : "pending",
+    source:   validSources.has(raw.source as string) ? (raw.source as Task["source"]) : "typed",
+    due_date: typeof raw.due_date === "string" ? raw.due_date : undefined,
+  };
+}
+
+const MOCK_TASKS: Task[] = [
+  { id: "1", text: "Finish the Q2 report before Sarah needs it",   category: "now",   status: "pending", source: "typed" },
+  { id: "2", text: "Reply to Marc about the proposal deadline",     category: "now",   status: "pending", source: "typed" },
+  { id: "3", text: "Review the onboarding docs pull request",       category: "later", status: "pending", source: "typed" },
+  { id: "4", text: "Book the dentist appointment",                  category: "later", status: "pending", source: "typed" },
+  { id: "5", text: "Ping Alex about the outstanding invoice",       category: "later", status: "pending", source: "typed" },
+  { id: "6", text: "Reorganise the downloads folder",               category: "drop",  status: "pending", source: "typed" },
+];
+
+// ── Mobile nav items ───────────────────────────────────────────────────
+const MODE_NAV: { id: AppMode; label: string; icon: React.ReactNode }[] = [
+  {
+    id: "dump", label: "Dump",
+    icon: (
+      <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth={1.5} className="w-5 h-5">
+        <path strokeLinecap="round" strokeLinejoin="round" d="M10 4v9m0 0-3-3m3 3 3-3M5 16h10" />
+      </svg>
+    ),
+  },
+  {
+    id: "triage", label: "Triage",
+    icon: (
+      <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth={1.5} className="w-5 h-5">
+        <path strokeLinecap="round" strokeLinejoin="round" d="M3 5h14M3 10h10M3 15h7" />
+      </svg>
+    ),
+  },
+  {
+    id: "focus", label: "Focus",
+    icon: (
+      <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth={1.5} className="w-5 h-5">
+        <circle cx="10" cy="10" r="7" />
+        <circle cx="10" cy="10" r="2.5" fill="currentColor" stroke="none" />
+      </svg>
+    ),
+  },
+  {
+    id: "reset", label: "Reset",
+    icon: (
+      <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth={1.5} className="w-5 h-5">
+        <path strokeLinecap="round" d="M3 10q3.5-5 7 0t7 0" />
+      </svg>
+    ),
+  },
+  {
+    id: "calendar", label: "Cal",
+    icon: (
+      <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth={1.5} className="w-5 h-5">
+        <rect x="2" y="4" width="16" height="14" rx="2" />
+        <path strokeLinecap="round" d="M6 2v3M14 2v3M2 9h16" />
+      </svg>
+    ),
+  },
+];
+
+// ── speak utility ──────────────────────────────────────────────────────
+function speakText(text: string) {
+  if (typeof window === "undefined" || !window.speechSynthesis) return;
+  window.speechSynthesis.cancel();
+  const utt = new SpeechSynthesisUtterance(text);
+  utt.rate = 0.95;
+  window.speechSynthesis.speak(utt);
+}
+
+// ── Component ──────────────────────────────────────────────────────────
+export default function Dashboard() {
+  const [mode, setMode]                 = useState<AppMode>("triage");
+  const [tasks, setTasks]               = useState<Task[]>([]);
+  const [mounted, setMounted]           = useState(false);
+  const [voiceEnabled, setVoiceEnabled] = useState(false);
+  const [userName, setUserName]         = useState("ClearHead");
+  const [dismissedText, setDismissedText] = useState<string | null>(null);
+  const lastSpeakKey = useRef<string>("");
+
+  // Load tasks + user from sessionStorage
+  useEffect(() => {
+    try {
+      const stored = sessionStorage.getItem("clearhead_tasks");
+      if (stored) {
+        const raw = JSON.parse(stored);
+        setTasks(Array.isArray(raw) ? raw.map(migrateTask) : MOCK_TASKS);
+      } else {
+        setTasks(MOCK_TASKS);
+      }
+    } catch {
+      setTasks(MOCK_TASKS);
+    }
+    try {
+      const name = sessionStorage.getItem("clearhead_user");
+      if (name) setUserName(name);
+    } catch {}
+    setMounted(true);
+  }, []);
+
+  // Persist tasks
+  useEffect(() => {
+    if (mounted) {
+      sessionStorage.setItem("clearhead_tasks", JSON.stringify(tasks));
+    }
+  }, [tasks, mounted]);
+
+  // ── Task mutations ───────────────────────────────────────────────────
+  const updateTask = (id: string, updates: Partial<Task>) =>
+    setTasks((prev) => prev.map((t) => (t.id === id ? { ...t, ...updates } : t)));
+
+  const addTasks = (newTasks: Task[]) =>
+    setTasks((prev) => [...prev, ...newTasks.map(migrateTask)]);
+
+  // ── Derived state ────────────────────────────────────────────────────
+  const activeTasks = useMemo(
+    () => tasks.filter((t) => t.status !== "done" && t.category !== "drop"),
+    [tasks]
+  );
+
+  const taskCount = activeTasks.length;
+
+  // nextActionText: top "now" task
+  const nextActionText = useMemo(() => {
+    const nowTask = tasks.find((t) => t.status !== "done" && t.category === "now");
+    return nowTask ? `Next up: ${nowTask.text}` : null;
+  }, [tasks]);
+
+  // Voice readback when mode is triage and tasks change (gated)
+  useEffect(() => {
+    if (!voiceEnabled || mode !== "triage") return;
+    const nowTasks = tasks.filter((t) => t.status !== "done" && t.category === "now");
+    if (nowTasks.length === 0) return;
+    const key = nowTasks[0].id;
+    if (key === lastSpeakKey.current) return;
+    lastSpeakKey.current = key;
+    speakText(`Focus on: ${nowTasks[0].text}`);
+  }, [tasks, mode, voiceEnabled]);
+
+  // Dismiss mascot orb text when nextActionText changes
+  useEffect(() => {
+    setDismissedText(null);
+  }, [nextActionText]);
+
+  const visibleNextActionText =
+    nextActionText === dismissedText ? null : nextActionText;
+
+  const speak = (text: string) => speakText(text);
+
+  return (
+    <div className="flex h-screen bg-[#0D0F14] overflow-hidden">
+      {/* Sidebar — desktop only */}
+      <div className="hidden sm:block shrink-0">
+        <Sidebar
+          mode={mode}
+          setMode={setMode}
+          taskCount={taskCount}
+          voiceEnabled={voiceEnabled}
+          setVoiceEnabled={setVoiceEnabled}
+          userName={userName}
+        />
+      </div>
+
+      {/* Main content */}
+      <main className="flex-1 overflow-y-auto pb-16 sm:pb-0">
+        {mode === "triage" && (
+          <TriageMode tasks={tasks} updateTask={updateTask} />
+        )}
+        {mode === "focus" && <FocusMode tasks={tasks} />}
+        {mode === "dump" && (
+          <DumpMode onTasksAdded={addTasks} onDone={() => setMode("triage")} />
+        )}
+        {mode === "reset" && (
+          <ResetMode speak={speak} voiceEnabled={voiceEnabled} />
+        )}
+        {mode === "calendar" && (
+          <CalendarMode tasks={tasks} updateTask={updateTask} />
+        )}
+      </main>
+
+      {/* Mascot Orb */}
+      <MascotOrb
+        nextActionText={visibleNextActionText}
+        onDismiss={() => setDismissedText(nextActionText)}
+        speak={speak}
+      />
+
+      {/* Mobile bottom nav */}
+      <nav className="sm:hidden fixed bottom-0 inset-x-0 bg-[#13161C]/95 backdrop-blur-sm border-t border-[#1D9E75]/10 flex z-50">
+        {MODE_NAV.map((item) => (
+          <button
+            key={item.id}
+            onClick={() => setMode(item.id)}
+            className={`flex-1 py-3 flex flex-col items-center gap-1 transition-colors ${
+              mode === item.id ? "text-[#5DCAA5]" : "text-[#A0A8B8]/40"
+            }`}
+          >
+            {item.icon}
+            <span className="text-[10px] font-sans">{item.label}</span>
+          </button>
+        ))}
+      </nav>
+    </div>
+  );
+}
