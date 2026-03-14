@@ -9,6 +9,8 @@ import ResetMode from "./components/ResetMode";
 import MascotOrb from "./components/MascotOrb";
 import CalendarMode from "./components/CalendarMode";
 
+import { supabase } from "@/lib/supabase"
+
 // ── Types ──────────────────────────────────────────────────────────────
 export type AppMode = "dump" | "triage" | "focus" | "reset" | "calendar";
 export type Category = "now" | "later" | "drop";
@@ -182,6 +184,17 @@ export default function Dashboard() {
       sessionStorage.setItem("clearhead_tasks", JSON.stringify(tasks));
     }
   }, [tasks, mounted]);
+
+  useEffect(() => {
+  const checkUser = async () => {
+    const { data: { user } } = await supabase.auth.getUser()
+    console.log("Current logged in user:", user)
+    console.log("Email:", user?.email)
+    console.log("Provider:", user?.app_metadata?.provider)
+  }
+
+  checkUser()
+}, [])
 
   // ── Task mutations ───────────────────────────────────────────────────
   const updateTask = (id: string, updates: Partial<Task>) =>
