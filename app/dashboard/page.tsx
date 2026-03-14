@@ -142,7 +142,7 @@ export default function Dashboard() {
     setTasks((prev) => prev.map((t) => (t.id === id ? { ...t, ...updates } : t)));
 
   const addTasks = (newTasks: Task[]) =>
-    setTasks((prev) => [...prev, ...newTasks.map(migrateTask)]);
+    setTasks((prev) => [...prev, ...newTasks.map((t) => migrateTask(t as unknown as Record<string, unknown>))]);
 
   // ── Derived state ────────────────────────────────────────────────────
   const activeTasks = useMemo(

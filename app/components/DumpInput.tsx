@@ -83,7 +83,8 @@ export default function DumpInput({
 
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const recognitionRef = useRef<SpeechRecognition | null>(null);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const recognitionRef = useRef<any>(null);
   const baseTextRef = useRef("");
 
   // ── Auto-resize ───────────────────────────────────────────────────
@@ -103,8 +104,9 @@ export default function DumpInput({
     try {
       const API =
         typeof window !== "undefined"
-          ? window.SpeechRecognition ??
-            (window as Window & { webkitSpeechRecognition?: typeof SpeechRecognition }).webkitSpeechRecognition
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          ? (window as any).SpeechRecognition ??
+            (window as any).webkitSpeechRecognition
           : null;
 
       if (!API) {
@@ -120,7 +122,8 @@ export default function DumpInput({
 
       rec.onstart = () => { setIsRecording(true); setVoiceError(null); };
 
-      rec.onresult = (event: SpeechRecognitionEvent) => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      rec.onresult = (event: any) => {
         let interim = "", final = "";
         for (let i = 0; i < event.results.length; i++) {
           (event.results[i].isFinal ? (s: string) => { final += s; } : (s: string) => { interim += s; })(

@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-
+import { supabase } from "@/lib/supabase";
 
 // ── Types ──────────────────────────────────────────────────────────────
 type Tab = "signin" | "signup";
@@ -105,58 +105,58 @@ export default function LoginPage() {
     return pw.length >= 8 ? "" : "Password must be at least 8 characters.";
   }
 
-  // // ── Sign in ──────────────────────────────────────────────────────────
-  // async function handleSignIn(e: React.FormEvent) {
-  //   e.preventDefault();
-  //   const emailErr = validateEmail(siEmail);
-  //   const pwErr    = validatePw(siPw);
-  //   setSiErrors({ email: emailErr, pw: pwErr });
-  //   if (emailErr || pwErr) return;
+  // ── Sign in ──────────────────────────────────────────────────────────
+  async function handleSignIn(e: React.FormEvent) {
+    e.preventDefault();
+    const emailErr = validateEmail(siEmail);
+    const pwErr    = validatePw(siPw);
+    setSiErrors({ email: emailErr, pw: pwErr });
+    if (emailErr || pwErr) return;
 
-  //   setSiLoading(true);
-  //   setSiMsg(null);
+    setSiLoading(true);
+    setSiMsg(null);
 
-  //   const { error } = await supabase.auth.signInWithPassword({ email: siEmail, password: siPw });
+    const { error } = await supabase.auth.signInWithPassword({ email: siEmail, password: siPw });
 
-  //   if (error) {
-  //     const msg =
-  //       error.message.toLowerCase().includes("invalid")
-  //         ? "Wrong email or password."
-  //         : error.message.toLowerCase().includes("confirm")
-  //         ? "Check your inbox to confirm your email."
-  //         : error.message;
-  //     setSiMsg({ type: "error", text: msg });
-  //     setSiLoading(false);
-  //   } else {
-  //     router.push("/dashboard");
-  //   }
-  // }
+    if (error) {
+      const msg =
+        error.message.toLowerCase().includes("invalid")
+          ? "Wrong email or password."
+          : error.message.toLowerCase().includes("confirm")
+          ? "Check your inbox to confirm your email."
+          : error.message;
+      setSiMsg({ type: "error", text: msg });
+      setSiLoading(false);
+    } else {
+      router.push("/dashboard");
+    }
+  }
 
-  // // ── Sign up ──────────────────────────────────────────────────────────
-  // async function handleSignUp(e: React.FormEvent) {
-  //   e.preventDefault();
-  //   const nameErr  = suName.trim() ? "" : "Display name is required.";
-  //   const emailErr = validateEmail(suEmail);
-  //   const pwErr    = validatePw(suPw);
-  //   setSuErrors({ name: nameErr, email: emailErr, pw: pwErr });
-  //   if (nameErr || emailErr || pwErr) return;
+  // ── Sign up ──────────────────────────────────────────────────────────
+  async function handleSignUp(e: React.FormEvent) {
+    e.preventDefault();
+    const nameErr  = suName.trim() ? "" : "Display name is required.";
+    const emailErr = validateEmail(suEmail);
+    const pwErr    = validatePw(suPw);
+    setSuErrors({ name: nameErr, email: emailErr, pw: pwErr });
+    if (nameErr || emailErr || pwErr) return;
 
-  //   setSuLoading(true);
-  //   setSuMsg(null);
+    setSuLoading(true);
+    setSuMsg(null);
 
-  //   const { error } = await supabase.auth.signUp({
-  //     email: suEmail,
-  //     password: suPw,
-  //     options: { data: { display_name: suName } },
-  //   });
+    const { error } = await supabase.auth.signUp({
+      email: suEmail,
+      password: suPw,
+      options: { data: { display_name: suName } },
+    });
 
-  //   if (error) {
-  //     setSuMsg({ type: "error", text: error.message });
-  //   } else {
-  //     setSuMsg({ type: "success", text: "Check your email to confirm your account." });
-  //   }
-  //   setSuLoading(false);
-  // }
+    if (error) {
+      setSuMsg({ type: "error", text: error.message });
+    } else {
+      setSuMsg({ type: "success", text: "Check your email to confirm your account." });
+    }
+    setSuLoading(false);
+  }
 
   // ── Google OAuth ─────────────────────────────────────────────────────
   async function handleGoogle() {
