@@ -138,10 +138,10 @@ export default function FocusMode({ tasks }: Props) {
       {/* Pomodoro */}
       <div className="flex flex-col items-center mb-10">
         <div className="relative w-36 h-36">
-          <svg width={180} height={180} className="-rotate-90 absolute inset-0">
+          <svg width={144} height={144} className="-rotate-90 absolute inset-0">
             <circle
-              cx={72}
-              cy={72}
+              cx={90}
+              cy={90}
               r={RADIUS}
               fill="none"
               stroke="#13161C"
