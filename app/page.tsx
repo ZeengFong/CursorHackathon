@@ -85,7 +85,7 @@ export default function Home() {
       <nav className="sticky top-0 z-50 bg-[#0D0F14]/95 backdrop-blur-sm border-b border-[#1D9E75]/8">
         <div className="max-w-4xl mx-auto px-6 h-14 flex items-center justify-between">
           <span className="font-serif text-[1.1rem] tracking-tight text-[#E8EAF0]">
-            Clear<em className="text-[#5DCAA5] italic">Head</em>
+            Brain<em className="text-[#5DCAA5] italic">Dump</em>
           </span>
           <a
             href="/login"
