@@ -1,5 +1,7 @@
 "use client";
 
+import { useRouter } from "next/navigation";
+import { SettingsIcon } from "@/app/components/ui/settings";
 import type { AppMode } from "../page";
 
 // ── Icons ──────────────────────────────────────────────────────────────
@@ -83,6 +85,8 @@ interface Props {
 }
 
 export default function Sidebar({ mode, setMode, taskCount, voiceEnabled, setVoiceEnabled, userName }: Props) {
+  const router = useRouter();
+
   // Left-edge bar color based on task count
   const barColor =
     taskCount === 0 ? "transparent" :
@@ -116,14 +120,7 @@ export default function Sidebar({ mode, setMode, taskCount, voiceEnabled, setVoi
       {/* Content */}
       <div className="flex flex-col flex-1 py-6 px-4 pl-5">
         {/* Logo + user avatar */}
-        <div className="flex items-center justify-between mb-8 px-2">
-          <span className="font-serif text-xl text-[#E8EAF0]">
-            Clear<em className="text-[#5DCAA5] italic">Head</em>
-          </span>
-          <div className="w-7 h-7 rounded-full bg-[#1D9E75]/20 border border-[#1D9E75]/30 flex items-center justify-center shrink-0">
-            <span className="font-sans text-[10px] font-semibold text-[#5DCAA5]">{initials}</span>
-          </div>
-        </div>
+
 
         {/* Mode nav */}
         <nav className="flex flex-col gap-0.5 flex-1">
@@ -146,6 +143,9 @@ export default function Sidebar({ mode, setMode, taskCount, voiceEnabled, setVoi
               {item.label}
             </button>
           ))}
+
+
+
         </nav>
 
         {/* Voice toggle */}
@@ -158,6 +158,17 @@ export default function Sidebar({ mode, setMode, taskCount, voiceEnabled, setVoi
           >
             {voiceEnabled ? <SpeakerOnIcon /> : <SpeakerOffIcon />}
             Voice {voiceEnabled ? "on" : "off"}
+          </button>
+        </div>
+
+        {/* Settings button */}
+        <div className="px-2 pb-2">
+          <button
+            onClick={() => router.push("/settings")}
+            className="flex items-center gap-2.5 w-full px-3 py-2 rounded-lg text-[#A0A8B8]/50 hover:text-[#A0A8B8] hover:bg-[#13161C]/40 transition-colors font-sans text-sm"
+          >
+            <SettingsIcon size={16} className="shrink-0" />
+            Settings
           </button>
         </div>
 
@@ -178,6 +189,15 @@ export default function Sidebar({ mode, setMode, taskCount, voiceEnabled, setVoi
           <p className="mt-1.5 text-[9px] font-sans text-[#A0A8B8]/20 text-center">
             configure in settings
           </p>
+        </div>
+
+        <div className="flex items-center justify-between mb-8 px-2">
+          <span className="font-serif text-xl text-[#E8EAF0]">
+            Clear<em className="text-[#5DCAA5] italic">Head</em>
+          </span>
+          <div className="w-7 h-7 rounded-full bg-[#1D9E75]/20 border border-[#1D9E75]/30 flex items-center justify-center shrink-0">
+            <span className="font-sans text-[10px] font-semibold text-[#5DCAA5]">{initials}</span>
+          </div>
         </div>
       </div>
     </aside>
