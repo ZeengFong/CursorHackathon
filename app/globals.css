@@ -1,26 +1,73 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-background: #0D0F14;
+  --color-surface: #13161C;
+  --color-teal: #1D9E75;
+  --color-teal-light: #5DCAA5;
+  --color-muted: #A0A8B8;
+  --font-sans: var(--font-sora);
+  --font-serif: var(--font-dm-serif);
+  --animate-fade-up: fadeSlideUp 0.65s ease both;
+  --animate-progress-bar: progressBar 1.5s ease-in-out infinite;
+  --animate-orb-pulse: orb-pulse 3s ease-in-out infinite;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+@keyframes fadeSlideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
   }
 }
 
+@keyframes pulse-ring {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+@keyframes progressBar {
+  0%   { transform: translateX(-100%); }
+  100% { transform: translateX(400%); }
+}
+
+@keyframes panic-shake {
+  0%, 100% { transform: translateX(0); }
+  25%       { transform: translateX(-2px); }
+  75%       { transform: translateX(2px); }
+}
+
+@keyframes wave-bar {
+  0%, 100% { transform: scaleY(0.35); }
+  50%       { transform: scaleY(1); }
+}
+
+@keyframes orb-pulse {
+  0%, 100% { transform: scale(1); }
+  50%       { transform: scale(1.04); }
+}
+
+.panic-btn:hover {
+  animation: panic-shake 300ms ease-in-out;
+}
+
+@keyframes breathe {
+  0%   { transform: scale(1);    animation-timing-function: ease-in-out; }
+  25%  { transform: scale(1.35); animation-timing-function: linear; }
+  50%  { transform: scale(1.35); animation-timing-function: ease-in-out; }
+  75%  { transform: scale(1);    animation-timing-function: linear; }
+  100% { transform: scale(1); }
+}
+
+.animate-breathe {
+  animation: breathe 16s infinite;
+}
+
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: #0D0F14;
+  color: #E8EAF0;
+  font-family: var(--font-sora), system-ui, sans-serif;
 }
