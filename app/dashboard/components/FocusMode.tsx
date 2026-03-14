@@ -140,8 +140,8 @@ export default function FocusMode({ tasks }: Props) {
         <div className="relative w-36 h-36">
           <svg width={144} height={144} className="-rotate-90 absolute inset-0">
             <circle
-              cx={90}
-              cy={90}
+              cx={72}
+              cy={72}
               r={RADIUS}
               fill="none"
               stroke="#13161C"
