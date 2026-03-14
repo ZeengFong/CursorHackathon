@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
+import { supabase } from "@/lib/supabase";
 
 // ── Local-storage helpers ─────────────────────────────────────────────
 function lsGet(key: string, fallback: string): string {
@@ -209,6 +210,24 @@ export default function SettingsPage() {
     setTimeout(() => setClearMsg(""), 2000);
   }
 
+  async function handleSignOut() {
+    try {
+      await supabase.auth.signOut();
+    } catch {
+      // If Supabase sign out fails, continue anyway
+    } finally {
+      try { sessionStorage.clear(); } catch {}
+      [
+        "clearhead_tasks", "BrainDump_tasks",
+        "BrainDump_voice_enabled", "BrainDump_display_name",
+        "BrainDump_panic_url", "BrainDump_voice_name",
+        "BrainDump_autodate", "BrainDump_show_past",
+        "BrainDump_clarify_enabled",
+      ].forEach((key) => { try { localStorage.removeItem(key); } catch {} });
+      router.push("/");
+    }
+  }
+
   // ── Derived ──────────────────────────────────────────────────────────
   let panicDomain = "";
   try {
@@ -405,6 +424,23 @@ export default function SettingsPage() {
                     Clear tasks
                   </button>
                 </div>
+              </div>
+
+              <div className="h-px bg-white/6" />
+
+              <div className="flex items-center justify-between gap-4">
+                <div>
+                  <p className="font-sans text-sm text-[#E8EAF0]">Sign out</p>
+                  <p className="font-sans text-[12px] text-[#A0A8B8]/45 mt-0.5">
+                    Clears your session and returns to the home page.
+                  </p>
+                </div>
+                <button
+                  onClick={handleSignOut}
+                  className="px-4 py-2 font-sans text-sm text-[#D85A30] border border-[#D85A30]/25 rounded-lg hover:bg-[#D85A30]/8 transition-colors whitespace-nowrap shrink-0"
+                >
+                  Sign out
+                </button>
               </div>
             </div>
           </section>
