@@ -38,7 +38,7 @@ export default function DumpForm() {
       if (!res.ok) throw new Error("Server error");
 
       const data = await res.json();
-      sessionStorage.setItem("BrainDump-triage", JSON.stringify(data));
+      sessionStorage.setItem("clearhead_triage", JSON.stringify(data));
       router.push("/dashboard");
     } catch {
       setError("Something went wrong. Please try again.");

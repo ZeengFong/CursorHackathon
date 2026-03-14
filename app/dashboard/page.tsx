@@ -112,8 +112,54 @@ export default function Dashboard() {
 
   // Load tasks + user from sessionStorage
   useEffect(() => {
+    // ── User switch detection ──────────────────────────────────────────
+    const params = new URLSearchParams(window.location.search);
+    const incomingUid = params.get("uid");
+    const storedUid = sessionStorage.getItem("clearhead_current_user");
+
+    const clearStaleData = () => {
+      sessionStorage.clear();
+      [
+        "clearhead_tasks", "BrainDump_tasks",
+        "BrainDump-triage", "clearhead_triage",
+        "clearhead_display_name", "clearhead_voice_enabled",
+        "clearhead_voice_name", "clearhead_panic_url",
+        "clearhead_autodate", "clearhead_show_past",
+        "clearhead_clarify_enabled",
+      ].forEach((k) => { try { localStorage.removeItem(k); } catch {} });
+    };
+
+    if (incomingUid) {
+      if (storedUid && storedUid !== incomingUid) {
+        clearStaleData();
+      }
+      sessionStorage.setItem("clearhead_current_user", incomingUid);
+      window.history.replaceState({}, "", "/dashboard");
+    } else if (!storedUid) {
+      clearStaleData();
+    }
+    // ── End user switch detection ──────────────────────────────────────
+
+    // ── Storage key migration ──────────────────────────────────────────
+    const migrations: [string, string][] = [
+      ["BrainDump_tasks", "clearhead_tasks"],
+      ["BrainDump-triage", "clearhead_triage"],
+      ["BrainDump_checkins", "clearhead_checkins"],
+      ["BrainDump_user", "clearhead_user"],
+    ];
+    migrations.forEach(([oldKey, newKey]) => {
+      try {
+        const old = sessionStorage.getItem(oldKey);
+        if (old && !sessionStorage.getItem(newKey)) {
+          sessionStorage.setItem(newKey, old);
+        }
+        sessionStorage.removeItem(oldKey);
+      } catch {}
+    });
+    // ── End migration ──────────────────────────────────────────────────
+
     try {
-      const stored = sessionStorage.getItem("BrainDump_tasks");
+      const stored = sessionStorage.getItem("clearhead_tasks");
       if (stored) {
         const raw = JSON.parse(stored);
         setTasks(Array.isArray(raw) ? raw.map(migrateTask) : MOCK_TASKS);
@@ -124,7 +170,7 @@ export default function Dashboard() {
       setTasks(MOCK_TASKS);
     }
     try {
-      const name = sessionStorage.getItem("BrainDump_user");
+      const name = sessionStorage.getItem("clearhead_user");
       if (name) setUserName(name);
     } catch {}
     setMounted(true);
@@ -133,7 +179,7 @@ export default function Dashboard() {
   // Persist tasks
   useEffect(() => {
     if (mounted) {
-      sessionStorage.setItem("BrainDump_tasks", JSON.stringify(tasks));
+      sessionStorage.setItem("clearhead_tasks", JSON.stringify(tasks));
     }
   }, [tasks, mounted]);
 
