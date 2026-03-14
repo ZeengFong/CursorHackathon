@@ -8,7 +8,7 @@ interface Props {
 }
 
 const TOTAL = 25 * 60;
-const RADIUS = 54;
+const RADIUS = 70;
 const CIRCUMFERENCE = 2 * Math.PI * RADIUS;
 
 const MOCK_STEPS = [
