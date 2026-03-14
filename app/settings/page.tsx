@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
+import { supabase } from "@/lib/supabase";
 
 // ── Local-storage helpers ─────────────────────────────────────────────
 function lsGet(key: string, fallback: string): string {
@@ -156,16 +157,16 @@ export default function SettingsPage() {
 
   // ── Mount: load localStorage values ─────────────────────────────────
   useEffect(() => {
-    setDisplayName(lsGet("clearhead_display_name", ""));
+    setDisplayName(lsGet("BrainDump_display_name", ""));
 
-    setVoiceEnabled(lsBool("clearhead_voice_enabled", false));
-    setClarifyEnabled(lsBool("clearhead_clarify_enabled", false));
-    setSelectedVoice(lsGet("clearhead_voice_name", ""));
+    setVoiceEnabled(lsBool("BrainDump_voice_enabled", false));
+    setClarifyEnabled(lsBool("BrainDump_clarify_enabled", false));
+    setSelectedVoice(lsGet("BrainDump_voice_name", ""));
 
-    setPanicUrl(lsGet("clearhead_panic_url", "https://poki.com/en/g/subway-surfers"));
+    setPanicUrl(lsGet("BrainDump_panic_url", "https://poki.com/en/g/subway-surfers"));
 
-    setAutoDate(lsBool("clearhead_autodate", true));
-    setShowPast(lsBool("clearhead_show_past", false));
+    setAutoDate(lsBool("BrainDump_autodate", true));
+    setShowPast(lsBool("BrainDump_show_past", false));
 
     const loadVoices = () => setVoices(window.speechSynthesis?.getVoices() ?? []);
     loadVoices();
@@ -181,32 +182,50 @@ export default function SettingsPage() {
       return;
     }
     setProfileError("");
-    lsSet("clearhead_display_name", displayName.trim());
+    lsSet("BrainDump_display_name", displayName.trim());
     flashProfile();
   }
 
   function saveVoice() {
-    lsSet("clearhead_voice_enabled", String(voiceEnabled));
-    lsSet("clearhead_clarify_enabled", String(clarifyEnabled));
-    lsSet("clearhead_voice_name", selectedVoice);
+    lsSet("BrainDump_voice_enabled", String(voiceEnabled));
+    lsSet("BrainDump_clarify_enabled", String(clarifyEnabled));
+    lsSet("BrainDump_voice_name", selectedVoice);
     flashVoice();
   }
 
   function savePanic() {
-    lsSet("clearhead_panic_url", panicUrl);
+    lsSet("BrainDump_panic_url", panicUrl);
     flashPanic();
   }
 
   function saveCal() {
-    lsSet("clearhead_autodate", String(autoDate));
-    lsSet("clearhead_show_past", String(showPast));
+    lsSet("BrainDump_autodate", String(autoDate));
+    lsSet("BrainDump_show_past", String(showPast));
     flashCal();
   }
 
   function clearTasks() {
-    try { sessionStorage.removeItem("clearhead_tasks"); } catch {}
+    try { sessionStorage.removeItem("BrainDump_tasks"); } catch {}
     setClearMsg("All tasks cleared.");
     setTimeout(() => setClearMsg(""), 2000);
+  }
+
+  async function handleSignOut() {
+    try {
+      await supabase.auth.signOut();
+    } catch {
+      // If Supabase sign out fails, continue anyway
+    } finally {
+      try { sessionStorage.clear(); } catch {}
+      [
+        "clearhead_tasks", "BrainDump_tasks",
+        "BrainDump_voice_enabled", "BrainDump_display_name",
+        "BrainDump_panic_url", "BrainDump_voice_name",
+        "BrainDump_autodate", "BrainDump_show_past",
+        "BrainDump_clarify_enabled",
+      ].forEach((key) => { try { localStorage.removeItem(key); } catch {} });
+      router.push("/");
+    }
   }
 
   // ── Derived ──────────────────────────────────────────────────────────
@@ -276,7 +295,7 @@ export default function SettingsPage() {
               checked={clarifyEnabled}
               onChange={setClarifyEnabled}
               label="Ask clarifying questions after dump"
-              description="ClearHead will prompt you with one follow-up question."
+              description="BrainDump will prompt you with one follow-up question."
             />
 
             {voices.length > 0 && (
@@ -320,7 +339,7 @@ export default function SettingsPage() {
               <div>
                 <p className="font-sans text-sm font-medium text-[#E8EAF0]">Your escape hatch</p>
                 <p className="mt-0.5 font-sans text-[12px] text-[#A0A8B8]/50">
-                  When everything&apos;s too much, this is where ClearHead sends you.
+                  When everything&apos;s too much, this is where BrainDump sends you.
                 </p>
               </div>
 
@@ -405,6 +424,23 @@ export default function SettingsPage() {
                     Clear tasks
                   </button>
                 </div>
+              </div>
+
+              <div className="h-px bg-white/6" />
+
+              <div className="flex items-center justify-between gap-4">
+                <div>
+                  <p className="font-sans text-sm text-[#E8EAF0]">Sign out</p>
+                  <p className="font-sans text-[12px] text-[#A0A8B8]/45 mt-0.5">
+                    Clears your session and returns to the home page.
+                  </p>
+                </div>
+                <button
+                  onClick={handleSignOut}
+                  className="px-4 py-2 font-sans text-sm text-[#D85A30] border border-[#D85A30]/25 rounded-lg hover:bg-[#D85A30]/8 transition-colors whitespace-nowrap shrink-0"
+                >
+                  Sign out
+                </button>
               </div>
             </div>
           </section>

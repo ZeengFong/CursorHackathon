@@ -1,7 +1,7 @@
-// ── ClearHead overlay — runs inside the extension iframe ──────────────
+// ── BrainDump overlay — runs inside the extension iframe ──────────────
 
 const APP_URL     = 'http://localhost:3000'; // update for production
-const STORAGE_KEY = 'clearhead_tasks';
+const STORAGE_KEY = 'BrainDump_tasks';
 const PANIC_KEY   = 'panic_url';
 const PANIC_DEFAULT = 'https://poki.com/en/g/subway-surfers';
 
@@ -39,7 +39,7 @@ chrome.storage.local.get([STORAGE_KEY], (result) => {
 
 // ── Close overlay ─────────────────────────────────────────────────────
 function closeOverlay() {
-  window.parent.postMessage({ action: 'clearhead-close' }, '*');
+  window.parent.postMessage({ action: 'BrainDump-close' }, '*');
 }
 
 closeBtn.addEventListener('click', closeOverlay);
@@ -141,7 +141,7 @@ async function handleSubmit() {
 
   } catch {
     showError(
-      "Couldn't reach ClearHead. Is the app running at localhost:3000?"
+      "Couldn't reach BrainDump. Is the app running at localhost:3000?"
     );
   } finally {
     setLoading(false);
@@ -277,7 +277,7 @@ newDumpLink.addEventListener('click', resetToDefault);
 
 openDashboard.addEventListener('click', () => {
   window.parent.postMessage(
-    { action: 'clearhead-open-url', url: `${APP_URL}/dashboard` },
+    { action: 'BrainDump-open-url', url: `${APP_URL}/dashboard` },
     '*'
   );
 });
@@ -286,6 +286,6 @@ openDashboard.addEventListener('click', () => {
 panicBtn.addEventListener('click', () => {
   chrome.storage.local.get([PANIC_KEY], (result) => {
     const url = result[PANIC_KEY] ?? PANIC_DEFAULT;
-    window.parent.postMessage({ action: 'clearhead-open-url', url }, '*');
+    window.parent.postMessage({ action: 'BrainDump-open-url', url }, '*');
   });
 });

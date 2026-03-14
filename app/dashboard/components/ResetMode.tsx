@@ -15,9 +15,10 @@ interface Props {
 }
 
 export default function ResetMode({ speak, voiceEnabled }: Props) {
-  const [phaseIndex, setPhaseIndex] = useState(0);
-  const [answers, setAnswers]       = useState({ q1: "", q2: "", q3: 0 });
-  const [saved, setSaved]           = useState(false);
+  const [phaseIndex, setPhaseIndex]   = useState(0);
+  const [answers, setAnswers]         = useState({ q1: "", q2: "", q3: 0 });
+  const [saved, setSaved]             = useState(false);
+  const [reflection, setReflection]   = useState<string | null>(null);
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
@@ -35,12 +36,34 @@ export default function ResetMode({ speak, voiceEnabled }: Props) {
   const handleSave = () => {
     try {
       sessionStorage.setItem(
-        "clearhead_checkins",
+        "BrainDump_checkins",
         JSON.stringify({ ...answers, ts: Date.now() })
       );
     } catch {}
     setSaved(true);
     if (voiceEnabled) speak("Good. Now back to it.");
+
+    // Fire and forget — don't block the UX
+    const fetchReflection = async () => {
+      try {
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 3000);
+        const res = await fetch("/api/reset", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ q1: answers.q1, q2: answers.q2, q3: answers.q3, ts: Date.now() }),
+          signal: controller.signal,
+        });
+        clearTimeout(timeout);
+        if (res.ok) {
+          const data = await res.json();
+          if (data.reflection) setReflection(data.reflection);
+        }
+      } catch {
+        // Timeout or network error — show nothing, don't disrupt the UX
+      }
+    };
+    fetchReflection();
   };
 
   const phase = PHASES[phaseIndex];
@@ -141,6 +164,15 @@ export default function ResetMode({ speak, voiceEnabled }: Props) {
         >
           {saved ? "Saved ✓" : "Done"}
         </button>
+
+        {reflection && (
+          <p
+            className="font-serif italic text-lg text-[#5DCAA5] text-center mt-6 max-w-sm mx-auto leading-relaxed"
+            style={{ animation: "fadeIn 400ms ease-in forwards", opacity: 0 }}
+          >
+            {reflection}
+          </p>
+        )}
       </div>
     </div>
   );

@@ -1,6 +1,9 @@
 import type { Metadata } from "next";
-import { DM_Serif_Display, Sora } from "next/font/google";
+import { DM_Serif_Display, Sora, Geist } from "next/font/google";
 import "./globals.css";
+import { cn } from "@/lib/utils";
+
+const geist = Geist({subsets:['latin'],variable:'--font-sans'});
 
 const dmSerifDisplay = DM_Serif_Display({
   variable: "--font-dm-serif",
@@ -15,9 +18,9 @@ const sora = Sora({
 });
 
 export const metadata: Metadata = {
-  title: "ClearHead — Cognitive Load Manager",
+  title: "BrainDump — Cognitive Load Manager",
   description:
-    "Type, speak, or drop files. ClearHead turns the chaos in your head into a clear action plan.",
+    "Type, speak, or drop files. BrainDump turns the chaos in your head into a clear action plan.",
 };
 
 export default function RootLayout({
@@ -26,7 +29,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" className={cn("font-sans", geist.variable)}>
       <body
         className={`${dmSerifDisplay.variable} ${sora.variable} antialiased`}
       >

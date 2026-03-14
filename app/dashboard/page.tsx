@@ -9,6 +9,8 @@ import ResetMode from "./components/ResetMode";
 import MascotOrb from "./components/MascotOrb";
 import CalendarMode from "./components/CalendarMode";
 
+import { supabase } from "@/lib/supabase"
+
 // ── Types ──────────────────────────────────────────────────────────────
 export type AppMode = "dump" | "triage" | "focus" | "reset" | "calendar";
 export type Category = "now" | "later" | "drop";
@@ -36,14 +38,6 @@ function migrateTask(raw: Record<string, unknown>): Task {
   };
 }
 
-const MOCK_TASKS: Task[] = [
-  { id: "1", text: "Finish the Q2 report before Sarah needs it",   category: "now",   status: "pending", source: "typed" },
-  { id: "2", text: "Reply to Marc about the proposal deadline",     category: "now",   status: "pending", source: "typed" },
-  { id: "3", text: "Review the onboarding docs pull request",       category: "later", status: "pending", source: "typed" },
-  { id: "4", text: "Book the dentist appointment",                  category: "later", status: "pending", source: "typed" },
-  { id: "5", text: "Ping Alex about the outstanding invoice",       category: "later", status: "pending", source: "typed" },
-  { id: "6", text: "Reorganise the downloads folder",               category: "drop",  status: "pending", source: "typed" },
-];
 
 // ── Mobile nav items ───────────────────────────────────────────────────
 const MODE_NAV: { id: AppMode; label: string; icon: React.ReactNode }[] = [
@@ -106,43 +100,97 @@ export default function Dashboard() {
   const [tasks, setTasks]               = useState<Task[]>([]);
   const [mounted, setMounted]           = useState(false);
   const [voiceEnabled, setVoiceEnabled] = useState(false);
-  const [userName, setUserName]         = useState("ClearHead");
+  const [userName, setUserName]         = useState("BrainDump");
   const [dismissedText, setDismissedText] = useState<string | null>(null);
   const lastSpeakKey = useRef<string>("");
 
-  // Load tasks + user from sessionStorage
+  // Load tasks from Supabase
   useEffect(() => {
-    try {
-      const stored = sessionStorage.getItem("clearhead_tasks");
-      if (stored) {
-        const raw = JSON.parse(stored);
-        setTasks(Array.isArray(raw) ? raw.map(migrateTask) : MOCK_TASKS);
+    const loadTasks = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) { setMounted(true); return; }
+
+      // Set user name from metadata
+      const displayName = user.user_metadata?.display_name || user.email?.split("@")[0] || "User";
+      setUserName(displayName);
+
+      const { data, error } = await supabase
+        .from("tasks")
+        .select("*")
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: true });
+
+      if (error) {
+        console.error("Failed to load tasks:", error.message);
+        setTasks([]);
+      } else if (data && data.length > 0) {
+        setTasks(data.map((row: Record<string, unknown>) => ({
+          id: String(row.id),
+          text: String(row.Name ?? ""),
+          category: (["now", "later", "drop"].includes(row.category as string) ? row.category : "later") as Category,
+          status: row.completed ? "done" as const : "pending" as const,
+          source: (["voice", "file", "typed"].includes(row.source as string) ? row.source : "typed") as Task["source"],
+          due_date: row.due_date ? String(row.due_date).split("T")[0] : undefined,
+        })));
       } else {
-        setTasks(MOCK_TASKS);
+        setTasks([]);
       }
-    } catch {
-      setTasks(MOCK_TASKS);
-    }
-    try {
-      const name = sessionStorage.getItem("clearhead_user");
-      if (name) setUserName(name);
-    } catch {}
-    setMounted(true);
-  }, []);
+      setMounted(true);
+    };
+    loadTasks();
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Persist tasks
-  useEffect(() => {
-    if (mounted) {
-      sessionStorage.setItem("clearhead_tasks", JSON.stringify(tasks));
-    }
-  }, [tasks, mounted]);
-
-  // ── Task mutations ───────────────────────────────────────────────────
-  const updateTask = (id: string, updates: Partial<Task>) =>
+  // ── Task mutations (synced to Supabase) ─────────────────────────────
+  const updateTask = (id: string, updates: Partial<Task>) => {
     setTasks((prev) => prev.map((t) => (t.id === id ? { ...t, ...updates } : t)));
 
-  const addTasks = (newTasks: Task[]) =>
-    setTasks((prev) => [...prev, ...newTasks.map((t) => migrateTask(t as unknown as Record<string, unknown>))]);
+    // Sync to Supabase in background
+    const patch: Record<string, unknown> = {};
+    if (updates.text !== undefined) patch.Name = updates.text;
+    if (updates.status !== undefined) patch.completed = updates.status === "done";
+    if (updates.category !== undefined) patch.category = updates.category;
+    if (updates.source !== undefined) patch.source = updates.source;
+    if (updates.due_date !== undefined) patch.due_date = updates.due_date || null;
+
+    supabase.from("tasks").update(patch).eq("id", Number(id)).then(({ error }) => {
+      if (error) console.error("Failed to sync task update:", error.message);
+    });
+  };
+
+  const addTasks = async (newTasks: Task[]) => {
+    const migrated = newTasks.map((t) => migrateTask(t as unknown as Record<string, unknown>));
+
+    // Insert into Supabase and use returned IDs
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user) {
+      const rows = migrated.map((t) => ({
+        Name: t.text,
+        completed: t.status === "done",
+        category: t.category,
+        source: t.source,
+        due_date: t.due_date || null,
+        user_id: user.id,
+      }));
+
+      const { data, error } = await supabase.from("tasks").insert(rows).select();
+      if (!error && data) {
+        const dbTasks: Task[] = data.map((row: Record<string, unknown>) => ({
+          id: String(row.id),
+          text: String(row.Name ?? ""),
+          category: (row.category as Category) ?? "later",
+          status: row.completed ? "done" as const : "pending" as const,
+          source: (row.source as Task["source"]) ?? "typed",
+          due_date: row.due_date ? String(row.due_date).split("T")[0] : undefined,
+        }));
+        setTasks((prev) => [...prev, ...dbTasks]);
+        return;
+      }
+      if (error) console.error("Failed to insert tasks:", error.message);
+    }
+
+    // Fallback: add locally without DB IDs
+    setTasks((prev) => [...prev, ...migrated]);
+  };
 
   // ── Derived state ────────────────────────────────────────────────────
   const activeTasks = useMemo(

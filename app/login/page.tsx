@@ -91,6 +91,19 @@ export default function LoginPage() {
 
   const strength = getStrength(suPw);
 
+  // Redirect already-signed-in users straight to dashboard
+  useEffect(() => {
+    const checkSession = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session) router.push("/dashboard");
+      } catch {
+        // If session check fails, stay on login page — do nothing
+      }
+    };
+    checkSession();
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
   // Entrance animation
   useEffect(() => {
     const t = setTimeout(() => setVisible(true), 10);
@@ -128,6 +141,22 @@ export default function LoginPage() {
       setSiMsg({ type: "error", text: msg });
       setSiLoading(false);
     } else {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          const previousUserId = sessionStorage.getItem("clearhead_current_user");
+          if (previousUserId && previousUserId !== user.id) {
+            sessionStorage.clear();
+          }
+          sessionStorage.setItem("clearhead_current_user", user.id);
+          sessionStorage.setItem(
+            "clearhead_user",
+            user.user_metadata?.display_name || user.email?.split("@")[0] || "User"
+          );
+        }
+      } catch {
+        sessionStorage.clear();
+      }
       router.push("/dashboard");
     }
   }
@@ -153,6 +182,16 @@ export default function LoginPage() {
     if (error) {
       setSuMsg({ type: "error", text: error.message });
     } else {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          sessionStorage.setItem("clearhead_current_user", user.id);
+          sessionStorage.setItem(
+            "clearhead_user",
+            user.user_metadata?.display_name || user.email?.split("@")[0] || "User"
+          );
+        }
+      } catch { /* ignore */ }
       setSuMsg({ type: "success", text: "Check your email to confirm your account." });
     }
     setSuLoading(false);

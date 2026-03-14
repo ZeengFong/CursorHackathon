@@ -1,6 +1,6 @@
-// ── ClearHead content script ───────────────────────────────────────────
+// ── BrainDump content script ───────────────────────────────────────────
 
-const IFRAME_ID = 'clearhead-overlay';
+const IFRAME_ID = 'BrainDump-overlay';
 const ANIM_MS   = 200;
 
 function getIframe() {
@@ -68,9 +68,9 @@ window.addEventListener('message', (event) => {
 
   const { action, url } = event.data ?? {};
 
-  if (action === 'clearhead-close') {
+  if (action === 'BrainDump-close') {
     removeOverlay();
-  } else if (action === 'clearhead-open-url' && typeof url === 'string') {
+  } else if (action === 'BrainDump-open-url' && typeof url === 'string') {
     window.open(url, '_blank', 'noopener,noreferrer');
   }
 });
