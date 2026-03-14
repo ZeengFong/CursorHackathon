@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ClearHead</title>
+    <link rel="stylesheet" href="overlay.css" />
+  </head>
+  <body>
+    <div class="card" id="card">
+
+      <!-- ── Progress bar (loading state) ─────────────────────── -->
+      <div class="progress-bar" id="progressBar" hidden>
+        <div class="progress-bar-inner"></div>
+      </div>
+
+      <!-- ── Header ───────────────────────────────────────────── -->
+      <header class="header">
+        <span class="logo">Clear<em>Head</em></span>
+        <div class="header-right">
+          <button class="new-dump-link" id="newDumpLink" hidden>＋ New dump</button>
+          <button class="close-btn" id="closeBtn" aria-label="Close">×</button>
+        </div>
+      </header>
+
+      <!-- ── Pane: Default (empty textarea + toolbar) ──────────── -->
+      <div class="pane" id="paneDefault">
+        <div class="pane-body">
+
+          <textarea
+            id="dumpInput"
+            placeholder="What's on your mind right now?"
+            rows="3"
+            spellcheck="false"
+          ></textarea>
+
+          <!-- Toolbar: mic left, submit right -->
+          <div class="toolbar">
+            <button class="mic-btn" id="micBtn" aria-label="Voice input" title="Voice input">
+              🎤
+            </button>
+            <button class="btn-primary" id="submitBtn">Clear it →</button>
+          </div>
+
+          <div class="error-msg" id="errorMsg" hidden></div>
+
+          <p class="hint">⌘⇧Space to toggle · Esc to close</p>
+
+          <!-- Panic button -->
+          <button class="panic-btn" id="panicBtn">I need a break 🔴</button>
+
+        </div>
+      </div>
+
+      <!-- ── Pane: Results ─────────────────────────────────────── -->
+      <div class="pane" id="paneResults" hidden>
+
+        <div class="task-list" id="taskList"></div>
+
+        <footer class="results-footer">
+          <div class="badge" id="badge"></div>
+          <div class="footer-actions">
+            <button class="btn-ghost" id="newDumpBtn">New dump</button>
+            <button class="btn-link" id="openDashboard">Open dashboard →</button>
+          </div>
+        </footer>
+
+      </div>
+
+    </div><!-- /.card -->
+    <script src="overlay.js"></script>
+  </body>
+</html>
