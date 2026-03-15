@@ -31,8 +31,8 @@ Date handling rules:
 - Resolve clear relative dates ("tomorrow", "next Monday", "by Friday") into ISO 8601 date strings (date only is fine, e.g. "2026-03-21") using the table above.
 - If SOME tasks have dates and others don't, default the undated tasks to the same due_date as the earliest dated task.
 - If the MAJORITY of tasks have no dates at all, ask ONE single question: "Did you have any specific dates in mind for these?" — nothing more specific.
-  - If the user answers no (or words to that effect), assign due_dates randomly: roughly half as today + 1 day, half as today + 7 days.
-  - If the user gives dates in their response, apply them to the tasks and resolve any remaining ones to today + 7 days.
+  - If the user answers no (or words to that effect), default all due_dates to today's date.
+  - If the user gives dates in their response, apply them to the tasks and default any remaining ones to today's date.
 - Only ask about a date if it is genuinely ambiguous AND you cannot default it (e.g. "Thursday" with no other dated tasks to anchor to).
 - Never ask more than one clarifying question total across the whole extraction.
 - If a task name is unclear, clean it up using context — do not ask about it unless it is completely unintelligible.
