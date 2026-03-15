@@ -71,14 +71,6 @@ interface Props {
 export default function Sidebar({ mode, setMode, taskCount, voiceEnabled, setVoiceEnabled, userName }: Props) {
   const router = useRouter();
 
-  // Left-edge bar color based on task count
-  const barColor =
-    taskCount === 0 ? "transparent" :
-    taskCount <= 3 ? "#1D9E75" :
-    taskCount <= 7 ? "#EF9F27" : "#D85A30";
-
-  const barFill = taskCount === 0 ? 0 : Math.min((taskCount / 10) * 100, 100);
-
   const initials = userName
     ? userName.split(" ").map((w) => w[0]).join("").slice(0, 2).toUpperCase()
     : "CL";
@@ -92,19 +84,14 @@ export default function Sidebar({ mode, setMode, taskCount, voiceEnabled, setVoi
   };
 
   return (
-    <aside className="relative w-60 h-screen bg-[#0D0F14] border-r border-[#1D9E75]/8 flex">
-      {/* Left-edge cognitive load bar */}
-      <div className="absolute left-0 top-0 bottom-0 w-0.5 bg-[#13161C] z-10">
-        <div
-          className="absolute bottom-0 w-full transition-all duration-700 rounded-t-full"
-          style={{ height: `${barFill}%`, backgroundColor: barColor }}
-        />
-      </div>
-
-      {/* Content */}
-      <div className="flex flex-col flex-1 py-6 px-4 pl-5">
-        {/* Logo + user avatar */}
-
+    <aside className="p-4 pr-0 h-screen">
+      <div className="h-full w-56 bg-[#13161C] rounded-2xl border border-[#1D9E75]/10 flex flex-col py-5 px-3 overflow-hidden">
+        {/* BrainDump logo at top */}
+        <div className="px-2 mb-5">
+          <span className="font-serif text-xl text-[#E8EAF0]">
+            Brain<em className="text-[#5DCAA5] italic">Dump</em>
+          </span>
+        </div>
 
         {/* Mode nav */}
         <nav className="flex flex-col gap-0.5 flex-1">
@@ -114,8 +101,8 @@ export default function Sidebar({ mode, setMode, taskCount, voiceEnabled, setVoi
               onClick={() => setMode(item.id)}
               className={`relative flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-sans transition-all text-left ${
                 mode === item.id
-                  ? "bg-[#13161C] text-[#E8EAF0]"
-                  : "text-[#A0A8B8]/50 hover:text-[#A0A8B8] hover:bg-[#13161C]/40"
+                  ? "bg-[#0D0F14]/60 text-[#E8EAF0]"
+                  : "text-[#A0A8B8]/50 hover:text-[#A0A8B8] hover:bg-[#0D0F14]/30"
               }`}
             >
               {mode === item.id && (
@@ -127,24 +114,10 @@ export default function Sidebar({ mode, setMode, taskCount, voiceEnabled, setVoi
               {item.label}
             </button>
           ))}
-
-
-
         </nav>
 
-        {/* Settings button */}
-        <div className="px-2 pb-2">
-          <button
-            onClick={() => router.push("/settings")}
-            className="flex items-center gap-2.5 w-full px-3 py-2 rounded-lg text-[#A0A8B8]/50 hover:text-[#A0A8B8] hover:bg-[#13161C]/40 transition-colors font-sans text-sm"
-          >
-            <SettingsIcon size={16} className="shrink-0" />
-            Settings
-          </button>
-        </div>
-
         {/* Panic button */}
-        <div className="px-2 pt-4 border-t border-[#1D9E75]/8">
+        <div className="px-1 mb-3">
           <button
             onClick={handlePanic}
             className="panic-btn w-full py-2.5 px-3 rounded-lg text-left font-sans text-[13px] font-medium transition-colors flex items-center gap-2"
@@ -162,13 +135,17 @@ export default function Sidebar({ mode, setMode, taskCount, voiceEnabled, setVoi
           </p>
         </div>
 
-        <div className="flex items-center justify-between mb-8 px-2">
-          <span className="font-serif text-xl text-[#E8EAF0]">
-            Brain<em className="text-[#5DCAA5] italic">Dump</em>
-          </span>
+        {/* Bottom row: profile + settings */}
+        <div className="flex items-center justify-between px-2 pt-3 border-t border-[#1D9E75]/10">
           <div className="w-7 h-7 rounded-full bg-[#1D9E75]/20 border border-[#1D9E75]/30 flex items-center justify-center shrink-0">
             <span className="font-sans text-[10px] font-semibold text-[#5DCAA5]">{initials}</span>
           </div>
+          <button
+            onClick={() => router.push("/settings")}
+            className="w-8 h-8 rounded-lg flex items-center justify-center text-[#A0A8B8]/40 hover:text-[#A0A8B8] hover:bg-[#0D0F14]/40 transition-colors"
+          >
+            <SettingsIcon size={16} className="shrink-0" />
+          </button>
         </div>
       </div>
     </aside>
