@@ -12,6 +12,7 @@ export default function ProgressBattery({ completed, total, delay = 0 }: Props) 
   const rawProgress = total === 0 ? 0 : completed / total;
   const progress = total === 0 ? 0 : Math.max(0.10, rawProgress);
   const [animatedWidth, setAnimatedWidth] = useState(0);
+  const pct = total === 0 ? 0 : Math.round(rawProgress * 100);
 
   useEffect(() => {
     const raf = requestAnimationFrame(() => {
@@ -43,10 +44,17 @@ export default function ProgressBattery({ completed, total, delay = 0 }: Props) 
             }}
           />
         )}
+
+        {/* Percent indicator */}
+        <div className="absolute inset-0 flex items-center justify-center z-10">
+          <span className="bg-[#0D0F14] px-2 py-1.5 rounded-lg font-sans text-lg font-semibold text-[#1D9E75] tabular-nums leading-none">
+            {pct}%
+          </span>
+        </div>
       </div>
 
       {/* Battery terminal bump */}
-      <div className="w-[8px] h-10 rounded-r-md bg-[#A0A8B8]/12 shrink-0" />
+      <div className="w-[8px] h-10 rounded-r-md bg-[#A0A8B8]/30 shrink-0" />
     </div>
   );
 }
