@@ -201,6 +201,13 @@ export default function Dashboard() {
     setTasks((prev) => [...prev, ...migrated]);
   };
 
+  const deleteTask = (id: string) => {
+    setTasks((prev) => prev.filter((t) => t.id !== id));
+    supabase.from("tasks").delete().eq("id", Number(id)).then(({ error }) => {
+      if (error) console.error("Failed to delete task:", error.message);
+    });
+  };
+
   // ── Derived state ────────────────────────────────────────────────────
   const activeTasks = useMemo(
     () => tasks.filter((t) => t.status !== "done" && t.category !== "drop"),
@@ -258,7 +265,7 @@ export default function Dashboard() {
           </div>
         )}
         {mode === "triage" && (
-          <TriageMode tasks={tasks} updateTask={updateTask} />
+          <TriageMode tasks={tasks} updateTask={updateTask} addTasks={addTasks} deleteTask={deleteTask} />
         )}
         {mode === "focus" && <FocusMode tasks={tasks} />}
         {mode === "dump" && (
