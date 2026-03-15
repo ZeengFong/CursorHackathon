@@ -31,8 +31,16 @@ export interface AdvisorRequest {
   currentTime: string;
 }
 
+export interface AdvisorAction {
+  type: "add" | "complete" | "reschedule" | "delete";
+  taskName: string;
+  dueDate?: string | null;
+}
+
 export interface AdvisorResponse {
   reply: string;
   displaySummary: string;
   referencedTaskNames: string[];
+  actions: AdvisorAction[];
+  needsConfirmation: boolean;
 }
