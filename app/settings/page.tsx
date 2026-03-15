@@ -162,7 +162,9 @@ export default function SettingsPage() {
 
   // ── Mount: load localStorage values ─────────────────────────────────
   useEffect(() => {
-    setDisplayName(lsGet("BrainDump_display_name", ""));
+    const brandName = lsGet("BrainDump_display_name", "");
+    const clearheadName = lsGet("clearhead_display_name", "");
+    setDisplayName(brandName || clearheadName);
 
     setVoiceEnabled(lsBool("BrainDump_voice_enabled", false));
     setClarifyEnabled(lsBool("BrainDump_clarify_enabled", false));
@@ -203,6 +205,7 @@ export default function SettingsPage() {
     }
     setProfileError("");
     lsSet("BrainDump_display_name", displayName.trim());
+    lsSet("clearhead_display_name", displayName.trim());
     flashProfile();
   }
 
