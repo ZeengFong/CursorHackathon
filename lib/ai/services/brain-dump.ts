@@ -7,7 +7,7 @@ const client = new OpenAI({ apiKey: AI_CONFIG.apiKey });
 
 export async function processBrainDump(
   request: BrainDumpRequest,
-  currentTime: string = new Date().toISOString()
+  currentTime: string = new Date().toISOString(),
 ): Promise<BrainDumpResponse> {
   const files = request.files ?? [];
   const hasFiles = files.length > 0;
