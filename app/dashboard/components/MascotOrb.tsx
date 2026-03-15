@@ -23,7 +23,7 @@ export default function MascotOrb({ nextActionText, onDismiss, speak }: Props) {
      * Position: desktop — fixed bottom-right of viewport (outside sidebar).
      * Mobile — bottom-left, above the 64px bottom tab bar.
      */
-    <div className="fixed z-40 bottom-6 right-6 sm:bottom-6 sm:right-6 bottom-20 left-6 sm:left-auto">
+    <div className="fixed z-40 bottom-20 left-6 sm:bottom-6 sm:left-auto sm:right-6">
       <div className="group relative">
         {/* ── Orb ── */}
         <div

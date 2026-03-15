@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import DumpInput, { type FilePayload } from "./DumpInput";
+import { supabase } from "@/lib/supabase";
 
 export default function InputCard() {
   const [error, setError] = useState<string | null>(null);
@@ -18,6 +19,16 @@ export default function InputCard() {
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const data = await res.json();
     sessionStorage.setItem("clearhead_tasks", JSON.stringify(data.tasks ?? []));
+
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        router.push("/login?from=dump");
+        return;
+      }
+    } catch {
+      // If session check fails, proceed to dashboard anyway
+    }
     router.push("/dashboard");
   };
 

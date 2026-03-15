@@ -157,7 +157,9 @@ export default function LoginPage() {
       } catch {
         sessionStorage.clear();
       }
-      router.push("/dashboard");
+      const params = new URLSearchParams(window.location.search);
+      const fromDump = params.get("from") === "dump";
+      router.push(fromDump ? "/dashboard?restored=true" : "/dashboard");
     }
   }
 

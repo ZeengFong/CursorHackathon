@@ -1,6 +1,10 @@
-// ── BrainDump overlay — runs inside the extension iframe ──────────────
+// ── ClearHead overlay — runs inside the extension iframe ──────────────
 
-const APP_URL     = 'http://localhost:3000'; // update for production
+const APP_URL = (() => {
+  // For local dev:    'http://localhost:3000'
+  // For production:   'https://your-deployed-url.vercel.app'
+  return 'http://localhost:3000';
+})();
 const STORAGE_KEY = 'BrainDump_tasks';
 const PANIC_KEY   = 'panic_url';
 const PANIC_DEFAULT = 'https://poki.com/en/g/subway-surfers';
@@ -141,7 +145,7 @@ async function handleSubmit() {
 
   } catch {
     showError(
-      "Couldn't reach BrainDump. Is the app running at localhost:3000?"
+      "Could not reach ClearHead. Make sure the app is running at localhost:3000 or update APP_URL in overlay.js for production."
     );
   } finally {
     setLoading(false);

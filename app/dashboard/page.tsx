@@ -100,8 +100,9 @@ export default function Dashboard() {
   const [tasks, setTasks]               = useState<Task[]>([]);
   const [mounted, setMounted]           = useState(false);
   const [voiceEnabled, setVoiceEnabled] = useState(false);
-  const [userName, setUserName]         = useState("BrainDump");
+  const [userName, setUserName]         = useState("ClearHead");
   const [dismissedText, setDismissedText] = useState<string | null>(null);
+  const [restoredBanner, setRestoredBanner] = useState(false);
   const lastSpeakKey = useRef<string>("");
 
   // Load tasks from Supabase
@@ -136,6 +137,14 @@ export default function Dashboard() {
         setTasks([]);
       }
       setMounted(true);
+
+      // Show banner if user arrived after a dump from landing page
+      const urlParams = new URLSearchParams(window.location.search);
+      if (urlParams.get("restored") === "true") {
+        window.history.replaceState({}, "", "/dashboard");
+        setRestoredBanner(true);
+        setTimeout(() => setRestoredBanner(false), 3000);
+      }
     };
     loadTasks();
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
@@ -242,7 +251,12 @@ export default function Dashboard() {
       </div>
 
       {/* Main content */}
-      <main className="flex-1 overflow-y-auto pb-16 sm:pb-0">
+      <main className="flex-1 overflow-y-auto pb-16 sm:pb-0 relative">
+        {restoredBanner && (
+          <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 bg-[#1D9E75]/10 border border-[#1D9E75]/30 text-[#5DCAA5] font-sans text-sm px-4 py-2 rounded-full pointer-events-none">
+            Your dump was saved — welcome back
+          </div>
+        )}
         {mode === "triage" && (
           <TriageMode tasks={tasks} updateTask={updateTask} />
         )}
