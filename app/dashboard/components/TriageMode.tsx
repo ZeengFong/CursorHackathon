@@ -2,6 +2,7 @@
 
 import { useState, useRef } from "react";
 import type { Task } from "../page";
+import { MicIcon } from "@/app/components/ui/mic";
 
 interface Props {
   tasks: Task[];
@@ -470,18 +471,15 @@ function AdvisorMicWrapper({
           <span className="absolute inset-0 rounded-full animate-ping opacity-25" style={{ backgroundColor: micColor }} />
         )}
         {micState === "loading" ? (
-          <svg className="w-4 h-4 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83" />
-          </svg>
+            <svg className="w-4 h-4 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83" />
+            </svg>
         ) : micState === "playing" ? (
           <svg className="w-3.5 h-3.5" viewBox="0 0 20 20" fill="currentColor">
             <rect x="4" y="4" width="12" height="12" rx="1" />
           </svg>
         ) : (
-          <svg className="w-4 h-4" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth={1.5}>
-            <rect x="7" y="2" width="6" height="10" rx="3" />
-            <path strokeLinecap="round" d="M4 10a6 6 0 0 0 12 0M10 16v2" />
-          </svg>
+          <MicIcon/>
         )}
       </button>
 

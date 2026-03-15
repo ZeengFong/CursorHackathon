@@ -4,22 +4,6 @@ import { useRouter } from "next/navigation";
 import { SettingsIcon } from "@/app/components/ui/settings";
 import type { AppMode } from "../page";
 
-// ── Icons ──────────────────────────────────────────────────────────────
-function SpeakerOnIcon() {
-  return (
-    <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth={1.5} className="w-4 h-4">
-      <path strokeLinecap="round" strokeLinejoin="round" d="M15.536 8.464a5 5 0 0 1 0 7.072M12 6.343a7 7 0 0 1 0 11.314M5 10H3a1 1 0 0 0-1 1v2a1 1 0 0 0 1 1h2l4 3V7L5 10Z" />
-    </svg>
-  );
-}
-
-function SpeakerOffIcon() {
-  return (
-    <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth={1.5} className="w-4 h-4">
-      <path strokeLinecap="round" strokeLinejoin="round" d="M5 10H3a1 1 0 0 0-1 1v2a1 1 0 0 0 1 1h2l4 3V7L5 10ZM17 7l-6 6M11 7l6 6" />
-    </svg>
-  );
-}
 
 function CalendarIcon() {
   return (
@@ -147,19 +131,6 @@ export default function Sidebar({ mode, setMode, taskCount, voiceEnabled, setVoi
 
 
         </nav>
-
-        {/* Voice toggle */}
-        <div className="px-2 pb-4">
-          <button
-            onClick={() => setVoiceEnabled(!voiceEnabled)}
-            className={`flex items-center gap-2.5 text-[11px] font-sans transition-colors ${
-              voiceEnabled ? "text-[#5DCAA5]" : "text-[#A0A8B8]/35 hover:text-[#A0A8B8]/60"
-            }`}
-          >
-            {voiceEnabled ? <SpeakerOnIcon /> : <SpeakerOffIcon />}
-            Voice {voiceEnabled ? "on" : "off"}
-          </button>
-        </div>
 
         {/* Settings button */}
         <div className="px-2 pb-2">
