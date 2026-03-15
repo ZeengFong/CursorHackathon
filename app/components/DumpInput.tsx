@@ -5,13 +5,15 @@ import { useRef, useState, useCallback } from "react";
 // ── Types ─────────────────────────────────────────────────────────────
 export interface FilePayload {
   name: string;
-  content: string;
+  type: string;   // MIME type
+  data: string;   // base64 data-URL
 }
 
 interface FileItem {
   id: string;
   name: string;
-  content: string;
+  type: string;
+  data: string;
   size: number;
 }
 
@@ -58,7 +60,6 @@ function XSmallIcon() {
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────
-const TEXT_EXTENSIONS = [".txt", ".md", ".csv", ".json", ".xml", ".html", ".htm", ".js", ".ts", ".py"];
 
 function formatSize(bytes: number) {
   if (bytes < 1024) return `${bytes}B`;
@@ -146,25 +147,34 @@ export default function DumpInput({
 
   // ── File reading ──────────────────────────────────────────────────
   const readFile = (file: File): Promise<FileItem> =>
-    new Promise((resolve) => {
+    new Promise((resolve, reject) => {
       const id = crypto.randomUUID();
-      const isText =
-        TEXT_EXTENSIONS.some((ext) => file.name.toLowerCase().endsWith(ext)) ||
-        file.type.startsWith("text/");
-      if (isText) {
-        const reader = new FileReader();
-        reader.onload = (e) =>
-          resolve({ id, name: file.name, size: file.size, content: (e.target?.result as string) ?? "" });
-        reader.readAsText(file);
-      } else {
-        resolve({ id, name: file.name, size: file.size, content: `[File: ${file.name}]` });
-      }
+      const reader = new FileReader();
+      reader.onload = (e) =>
+        resolve({
+          id,
+          name: file.name,
+          type: file.type || "application/octet-stream",
+          data: (e.target?.result as string) ?? "",
+          size: file.size,
+        });
+      reader.onerror = () => reject(new Error(`Failed to read ${file.name}`));
+      reader.readAsDataURL(file);
     });
+
+  const MAX_FILE_SIZE = 20 * 1024 * 1024; // 20 MB
 
   const addFiles = async (incoming: File[]) => {
     const slots = 3 - files.length;
     if (slots <= 0) return;
-    const items = await Promise.all(incoming.slice(0, slots).map(readFile));
+    const valid = incoming.filter((f) => {
+      if (f.size > MAX_FILE_SIZE) {
+        setError(`${f.name} exceeds 20 MB limit`);
+        return false;
+      }
+      return true;
+    });
+    const items = await Promise.all(valid.slice(0, slots).map(readFile));
     setFiles((prev) => [...prev, ...items]);
   };
 
@@ -186,7 +196,7 @@ export default function DumpInput({
     setLoading(true);
     setError(null);
     try {
-      await onSubmit(text, files.map((f) => ({ name: f.name, content: f.content })));
+      await onSubmit(text, files.map((f) => ({ name: f.name, type: f.type, data: f.data })));
       setText("");
       setFiles([]);
       if (textareaRef.current) textareaRef.current.style.height = "";
