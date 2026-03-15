@@ -1,17 +1,20 @@
 "use client";
 
 import { useRef, useState, useCallback } from "react";
+import { supabase } from "@/lib/supabase";
 
 // ── Types ─────────────────────────────────────────────────────────────
 export interface FilePayload {
   name: string;
-  content: string;
+  type: string;   // MIME type
+  file_id: string; // OpenAI file ID
 }
 
 interface FileItem {
   id: string;
   name: string;
-  content: string;
+  type: string;
+  file: File;      // original File for upload
   size: number;
 }
 
@@ -58,7 +61,6 @@ function XSmallIcon() {
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────
-const TEXT_EXTENSIONS = [".txt", ".md", ".csv", ".json", ".xml", ".html", ".htm", ".js", ".ts", ".py"];
 
 function formatSize(bytes: number) {
   if (bytes < 1024) return `${bytes}B`;
@@ -145,26 +147,27 @@ export default function DumpInput({
   };
 
   // ── File reading ──────────────────────────────────────────────────
-  const readFile = (file: File): Promise<FileItem> =>
-    new Promise((resolve) => {
-      const id = crypto.randomUUID();
-      const isText =
-        TEXT_EXTENSIONS.some((ext) => file.name.toLowerCase().endsWith(ext)) ||
-        file.type.startsWith("text/");
-      if (isText) {
-        const reader = new FileReader();
-        reader.onload = (e) =>
-          resolve({ id, name: file.name, size: file.size, content: (e.target?.result as string) ?? "" });
-        reader.readAsText(file);
-      } else {
-        resolve({ id, name: file.name, size: file.size, content: `[File: ${file.name}]` });
-      }
-    });
+  const toFileItem = (file: File): FileItem => ({
+    id: crypto.randomUUID(),
+    name: file.name,
+    type: file.type || "application/octet-stream",
+    file,
+    size: file.size,
+  });
 
-  const addFiles = async (incoming: File[]) => {
+  const MAX_FILE_SIZE = 20 * 1024 * 1024; // 20 MB
+
+  const addFiles = (incoming: File[]) => {
     const slots = 3 - files.length;
     if (slots <= 0) return;
-    const items = await Promise.all(incoming.slice(0, slots).map(readFile));
+    const valid = incoming.filter((f) => {
+      if (f.size > MAX_FILE_SIZE) {
+        setError(`${f.name} exceeds 20 MB limit`);
+        return false;
+      }
+      return true;
+    });
+    const items = valid.slice(0, slots).map(toFileItem);
     setFiles((prev) => [...prev, ...items]);
   };
 
@@ -181,12 +184,32 @@ export default function DumpInput({
   // ── Submit ────────────────────────────────────────────────────────
   const canSubmit = (text.trim().length > 0 || files.length > 0) && !loading;
 
+  const uploadFile = async (file: File): Promise<FilePayload> => {
+    // Upload to Supabase Storage first (bypasses Vercel 4.5MB body limit)
+    const path = `${crypto.randomUUID()}-${file.name}`;
+    const { error: storageError } = await supabase.storage
+      .from("uploads")
+      .upload(path, file);
+    if (storageError) throw new Error(`Storage upload failed: ${storageError.message}`);
+
+    // Then tell our server to fetch from Supabase and forward to OpenAI
+    const res = await fetch("/api/upload", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ path, name: file.name, type: file.type || "application/octet-stream" }),
+    });
+    if (!res.ok) throw new Error(`Upload failed for ${file.name}`);
+    return res.json();
+  };
+
   const handleSubmit = async () => {
     if (!canSubmit) return;
     setLoading(true);
     setError(null);
     try {
-      await onSubmit(text, files.map((f) => ({ name: f.name, content: f.content })));
+      // Upload files to OpenAI via our upload endpoint
+      const payloads = await Promise.all(files.map((f) => uploadFile(f.file)));
+      await onSubmit(text, payloads);
       setText("");
       setFiles([]);
       if (textareaRef.current) textareaRef.current.style.height = "";

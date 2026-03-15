@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { processBrainDump } from "@/lib/ai/services/brain-dump";
 import { BrainDumpRequest } from "@/lib/ai/types";
 
+export const maxDuration = 60;
+
 export async function POST(req: NextRequest) {
   let body: BrainDumpRequest;
 

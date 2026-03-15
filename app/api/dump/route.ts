@@ -1,37 +1,56 @@
 import { NextResponse } from "next/server";
 import openai from "@/lib/openai";
 import { TRIAGE_SYSTEM_PROMPT } from "@/lib/prompts";
+import type OpenAI from "openai";
+
+export const maxDuration = 60;
 
 export async function POST(request: Request) {
   // Accept both new { text, files } shape and legacy { dump } shape
   const body = await request.json();
   const content: string = body.text ?? body.dump ?? "";
-  const files: { name: string; content: string }[] = body.files ?? [];
+  const files: { name: string; type: string; file_id: string }[] =
+    body.files ?? [];
 
-  // Build the user message: dump text + any file contents appended
-  let userMessage = content.trim();
-  if (files.length > 0) {
-    const fileSection = files
-      .map((f) => `[File: ${f.name}]\n${f.content}`)
-      .join("\n\n");
-    userMessage = `${userMessage}\n\n--- Attached files ---\n${fileSection}`;
-  }
-
-  if (!userMessage) {
+  const textContent = content.trim();
+  if (!textContent && files.length === 0) {
     return NextResponse.json({ tasks: [], text: "" });
   }
 
   try {
+    // Build multi-part content for the user message
+    const parts: OpenAI.Chat.ChatCompletionContentPart[] = [];
+
+    if (textContent) {
+      parts.push({ type: "text", text: textContent });
+    }
+
+    for (const file of files) {
+      parts.push({
+        type: "file",
+        file: { file_id: file.file_id },
+      } as OpenAI.Chat.ChatCompletionContentPart);
+    }
+
+    // If we only have text (no files), keep it simple
+    const userContent =
+      parts.length === 1 && parts[0].type === "text" ? textContent : parts;
+
     const completion = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
+      model: files.length > 0 ? "gpt-4o" : "gpt-4o-mini",
       messages: [
         { role: "system", content: TRIAGE_SYSTEM_PROMPT },
-        { role: "user", content: userMessage },
+        { role: "user", content: userContent },
       ],
-      max_tokens: 1024,
+      max_tokens: 16384,
       temperature: 0.3,
       response_format: { type: "json_object" },
     });
+
+    // Clean up uploaded files
+    for (const file of files) {
+      openai.files.delete(file.file_id).catch(() => {});
+    }
 
     const raw = completion.choices[0]?.message?.content ?? "{}";
     const parsed = JSON.parse(raw) as { tasks?: unknown[] };
@@ -40,7 +59,10 @@ export async function POST(request: Request) {
     const tasks = (parsed.tasks ?? []).map((t: unknown) => {
       const task = t as Record<string, unknown>;
       return {
-        id: typeof task.id === "string" && task.id ? task.id : crypto.randomUUID(),
+        id:
+          typeof task.id === "string" && task.id
+            ? task.id
+            : crypto.randomUUID(),
         text: String(task.text ?? ""),
         category: ["now", "later", "drop"].includes(task.category as string)
           ? task.category
@@ -54,6 +76,13 @@ export async function POST(request: Request) {
     return NextResponse.json({ tasks, text: content });
   } catch (err) {
     console.error("[/api/dump] OpenAI error:", err);
-    return NextResponse.json({ tasks: [], error: "Failed to process dump. Please try again." });
+    // Clean up files on error too
+    for (const file of files) {
+      openai.files.delete(file.file_id).catch(() => {});
+    }
+    return NextResponse.json({
+      tasks: [],
+      error: "Failed to process dump. Please try again.",
+    });
   }
 }

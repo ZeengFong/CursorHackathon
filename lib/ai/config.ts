@@ -1,6 +1,6 @@
 export const AI_CONFIG = {
   openAiModel: "gpt-4o-mini",
-  maxTokensBrainDump: 1000,
-  maxTokensAdvisor: 1500,
+  maxTokensBrainDump: 16384,
+  maxTokensAdvisor: 16384,
   apiKey: process.env.OPENAI_API_KEY,
 };

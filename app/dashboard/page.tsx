@@ -8,6 +8,7 @@ import DumpMode from "./components/DumpMode";
 import ResetMode from "./components/ResetMode";
 import MascotOrb from "./components/MascotOrb";
 import CalendarMode from "./components/CalendarMode";
+import MindLetter from "./components/MindLetter";
 
 import { supabase } from "@/lib/supabase"
 
@@ -103,6 +104,7 @@ export default function Dashboard() {
   const [userName, setUserName]         = useState("BrainDump");
   const [dismissedText, setDismissedText] = useState<string | null>(null);
   const [restoredBanner, setRestoredBanner] = useState(false);
+  const [showLetter, setShowLetter] = useState(false);
   const lastSpeakKey = useRef<string>("");
 
   // Load tasks from Supabase
@@ -167,6 +169,7 @@ export default function Dashboard() {
   };
 
   const addTasks = async (newTasks: Task[]) => {
+    sessionStorage.removeItem('clearhead_letter');
     const migrated = newTasks.map((t) => migrateTask(t as unknown as Record<string, unknown>));
 
     // Insert into Supabase and use returned IDs
@@ -265,7 +268,7 @@ export default function Dashboard() {
           </div>
         )}
         {mode === "triage" && (
-          <TriageMode tasks={tasks} updateTask={updateTask} addTasks={addTasks} deleteTask={deleteTask} />
+          <TriageMode tasks={tasks} updateTask={updateTask} addTasks={addTasks} deleteTask={deleteTask} onOpenLetter={() => setShowLetter(true)} />
         )}
         {mode === "focus" && <FocusMode tasks={tasks} />}
         {mode === "dump" && (
@@ -285,6 +288,13 @@ export default function Dashboard() {
         onDismiss={() => setDismissedText(nextActionText)}
         speak={speak}
       />
+
+      {showLetter && (
+        <MindLetter
+          tasks={tasks}
+          onClose={() => setShowLetter(false)}
+        />
+      )}
 
       {/* Mobile bottom nav */}
       <nav className="sm:hidden fixed bottom-0 inset-x-0 bg-[#13161C]/95 backdrop-blur-sm border-t border-[#1D9E75]/10 flex z-50">

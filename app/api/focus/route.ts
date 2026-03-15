@@ -25,7 +25,7 @@ export async function POST(request: Request) {
         { role: "system", content: FOCUS_SYSTEM_PROMPT },
         { role: "user", content: `Task: ${task}` },
       ],
-      max_tokens: 512,
+      max_tokens: 16384,
       temperature: 0.3,
       response_format: { type: "json_object" },
     });

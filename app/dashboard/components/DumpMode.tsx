@@ -31,16 +31,7 @@ export default function DumpMode({ onTasksAdded, onDone }: Props) {
     lastRawTextRef.current = text;
     attachedFilesRef.current = files;
 
-    // Append file contents to rawText so the AI sees them
-    let rawText = text.trim();
-    if (files.length > 0) {
-      const fileSection = files
-        .map((f) => `[File: ${f.name}]\n${f.content}`)
-        .join("\n\n");
-      rawText = `${rawText}\n\n--- Attached files ---\n${fileSection}`;
-    }
-
-    await callBrainDump(rawText);
+    await callBrainDump(text.trim(), files);
     setLoading(false);
   };
 
@@ -55,7 +46,7 @@ export default function DumpMode({ onTasksAdded, onDone }: Props) {
   };
 
   // ── Core API call ──────────────────────────────────────────────────
-  const callBrainDump = async (userMessage: string) => {
+  const callBrainDump = async (userMessage: string, files?: FilePayload[]) => {
     try {
       const res = await fetch("/api/ai/brain-dump", {
         method: "POST",
@@ -63,6 +54,7 @@ export default function DumpMode({ onTasksAdded, onDone }: Props) {
         body: JSON.stringify({
           rawText: userMessage,
           conversationHistory: conversationHistoryRef.current,
+          ...(files && files.length > 0 ? { files } : {}),
         }),
       });
 
