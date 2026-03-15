@@ -146,6 +146,32 @@ export default function Dashboard() {
           sort_order: typeof row.sort_order === "string" ? row.sort_order : null,
         }));
       }
+      // Backfill sort_order for any tasks that don't have one yet
+      const needsOrder = freshTasks.filter((t) => !t.sort_order);
+      if (needsOrder.length > 0) {
+        const categories: Category[] = ["now", "later", "drop"];
+        for (const cat of categories) {
+          const inCat = freshTasks.filter((t) => t.category === cat);
+          // Find the last existing key in this category
+          const withOrder = inCat.filter((t) => t.sort_order).sort((a, b) => a.sort_order! < b.sort_order! ? -1 : 1);
+          let lastKey = withOrder.length > 0 ? withOrder[withOrder.length - 1].sort_order! : null;
+          // Assign keys to tasks without sort_order (they're already in created_at order from the query)
+          for (const t of inCat) {
+            if (!t.sort_order) {
+              const newKey = generateKeyBetween(lastKey, null);
+              t.sort_order = newKey;
+              lastKey = newKey;
+            }
+          }
+        }
+        // Persist to DB in background
+        for (const t of needsOrder) {
+          supabase.from("tasks").update({ sort_order: t.sort_order }).eq("id", Number(t.id)).then(({ error }) => {
+            if (error) console.error("Failed to backfill sort_order:", error.message);
+          });
+        }
+      }
+
       setTasks(freshTasks);
       setCachedTasks(freshTasks);
       setMounted(true);

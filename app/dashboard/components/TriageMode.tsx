@@ -11,10 +11,12 @@ import {
   useSensor,
   useSensors,
   useDroppable,
-  useDraggable,
   closestCenter,
 } from "@dnd-kit/core";
 import type { DragStartEvent, DragOverEvent, DragEndEvent } from "@dnd-kit/core";
+import { SortableContext, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
+import { generateKeyBetween } from "fractional-indexing";
 
 interface Props {
   tasks: Task[];
@@ -256,7 +258,7 @@ function DraggableTaskCard({
   setCalendarId: (id: string | null) => void;
   dateButtonRefs: React.RefObject<Map<string, HTMLButtonElement>>;
 }) {
-  const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: task.id,
     data: { task },
   });
@@ -265,13 +267,13 @@ function DraggableTaskCard({
   const src = SOURCE_STYLE[task.source] ?? SOURCE_STYLE.typed;
 
   const style: React.CSSProperties = {
-    transform: transform ? `translate(${transform.x}px, ${transform.y}px)` : undefined,
+    transform: CSS.Transform.toString(transform),
+    transition,
     opacity: isDragging ? 0.35 : 1,
     zIndex: isDragging ? 50 : undefined,
     cursor: isDragActive ? (isDragging ? "grabbing" : "grab") : "grab",
     borderColor: isHighlighted ? "#5DCAA5" : "rgba(29,158,117,0.08)",
     boxShadow: isHighlighted ? "0 0 0 1px #5DCAA540" : isDragging ? "0 8px 32px rgba(0,0,0,0.4)" : undefined,
-    transition: isDragging ? "none" : "opacity 200ms ease, box-shadow 200ms ease, border-color 200ms ease",
   };
 
   return (
@@ -453,26 +455,28 @@ function DroppableColumn({
         <span className="ml-auto font-sans text-xs text-[#A0A8B8]/30">{tasks.length}</span>
       </div>
       <p className="font-sans text-[11px] text-[#A0A8B8]/40 mb-3">{subtitle}</p>
-      <div className="flex flex-col gap-2 min-h-[80px]">
-        {tasks.length === 0 ? (
-          <p className="py-8 text-center font-sans text-xs text-[#A0A8B8]/20 italic">{emptyText}</p>
-        ) : (
-          tasks.map((t) => (
-            <DraggableTaskCard
-              key={t.id}
-              task={t}
-              allowOverdue={allowOverdue}
-              isHighlighted={highlightedIds.has(t.id)}
-              isDragActive={isDragActive}
-              onMarkDone={onMarkDone}
-              onDateChange={onDateChange}
-              calendarId={calendarId}
-              setCalendarId={setCalendarId}
-              dateButtonRefs={dateButtonRefs}
-            />
-          ))
-        )}
-      </div>
+      <SortableContext items={tasks.map((t) => t.id)} strategy={verticalListSortingStrategy}>
+        <div className="flex flex-col gap-2 min-h-[80px]">
+          {tasks.length === 0 ? (
+            <p className="py-8 text-center font-sans text-xs text-[#A0A8B8]/20 italic">{emptyText}</p>
+          ) : (
+            tasks.map((t) => (
+              <DraggableTaskCard
+                key={t.id}
+                task={t}
+                allowOverdue={allowOverdue}
+                isHighlighted={highlightedIds.has(t.id)}
+                isDragActive={isDragActive}
+                onMarkDone={onMarkDone}
+                onDateChange={onDateChange}
+                calendarId={calendarId}
+                setCalendarId={setCalendarId}
+                dateButtonRefs={dateButtonRefs}
+              />
+            ))
+          )}
+        </div>
+      </SortableContext>
     </div>
   );
 }
@@ -562,19 +566,70 @@ export default function TriageMode({ tasks, updateTask, addTasks, deleteTask, on
     setActiveTask(task);
   };
 
+  // Map of column ID → sorted task list for sort_order computation
+  const columnTaskMap: Record<ColumnId, Task[]> = { now: nowTasks, later: laterTasks, drop: dropTasks };
+  const columnIds = new Set<string>(["now", "later", "drop"]);
+
+  const resolveOverColumn = (overId: string): ColumnId | null => {
+    if (columnIds.has(overId)) return overId as ColumnId;
+    // overId is a task ID — find which column it's in
+    return getDisplayColumn(overId);
+  };
+
   const handleDragOver = (event: DragOverEvent) => {
-    const overId = event.over?.id as ColumnId | undefined;
-    setOverColumnId(overId ?? null);
+    const overId = event.over?.id as string | undefined;
+    if (!overId) { setOverColumnId(null); return; }
+    setOverColumnId(resolveOverColumn(overId));
   };
 
   const handleDragEnd = (event: DragEndEvent) => {
-    const overId = event.over?.id as ColumnId | undefined;
-    if (activeTask && overId) {
-      const currentCol = getDisplayColumn(activeTask.id);
-      if (currentCol && overId !== currentCol) {
-        updateTask(activeTask.id, { category: overId });
+    const overId = event.over?.id as string | undefined;
+    if (!activeTask || !overId) {
+      setActiveTask(null);
+      setOverColumnId(null);
+      return;
+    }
+
+    const currentCol = getDisplayColumn(activeTask.id);
+    const targetCol = resolveOverColumn(overId);
+    if (!currentCol || !targetCol) {
+      setActiveTask(null);
+      setOverColumnId(null);
+      return;
+    }
+
+    const targetList = columnTaskMap[targetCol];
+    const updates: Partial<Task> = {};
+
+    // Determine category change
+    if (targetCol !== currentCol) {
+      updates.category = targetCol;
+    }
+
+    // Compute new sort_order based on drop position
+    if (columnIds.has(overId)) {
+      // Dropped on empty column area — append to end
+      const lastTask = targetList[targetList.length - 1];
+      updates.sort_order = generateKeyBetween(lastTask?.sort_order ?? null, null);
+    } else {
+      // Dropped on/near a specific task — insert at that position
+      const overIndex = targetList.findIndex((t) => t.id === overId);
+      if (overIndex >= 0) {
+        // Filter out the active task from the list to avoid self-reference
+        const filtered = targetList.filter((t) => t.id !== activeTask.id);
+        // Find where the over task is in the filtered list
+        const filteredOverIndex = filtered.findIndex((t) => t.id === overId);
+
+        const prevKey = filteredOverIndex > 0 ? filtered[filteredOverIndex - 1].sort_order ?? null : null;
+        const nextKey = filtered[filteredOverIndex]?.sort_order ?? null;
+        updates.sort_order = generateKeyBetween(prevKey, nextKey);
       }
     }
+
+    if (Object.keys(updates).length > 0) {
+      updateTask(activeTask.id, updates);
+    }
+
     setActiveTask(null);
     setOverColumnId(null);
   };
@@ -605,7 +660,7 @@ export default function TriageMode({ tasks, updateTask, addTasks, deleteTask, on
         <div>
           <h2 className="font-serif text-2xl text-[#E8EAF0]">Triage</h2>
           <p className="mt-1 font-sans text-xs text-[#A0A8B8]/50">
-            Drag cards between columns · hover to mark done
+            Drag to reorder or move between columns · hover to mark done
           </p>
         </div>
 
