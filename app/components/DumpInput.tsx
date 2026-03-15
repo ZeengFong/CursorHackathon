@@ -184,9 +184,10 @@ export default function DumpInput({
   const canSubmit = (text.trim().length > 0 || files.length > 0) && !loading;
 
   const uploadFile = async (file: File): Promise<FilePayload> => {
-    const form = new FormData();
-    form.append("file", file);
-    const res = await fetch("/api/upload", { method: "POST", body: form });
+    const res = await fetch(
+      `/api/upload?name=${encodeURIComponent(file.name)}&type=${encodeURIComponent(file.type || "application/octet-stream")}`,
+      { method: "POST", body: file },
+    );
     if (!res.ok) throw new Error(`Upload failed for ${file.name}`);
     return res.json();
   };

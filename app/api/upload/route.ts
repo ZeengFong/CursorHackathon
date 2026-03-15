@@ -2,14 +2,17 @@ import { NextResponse } from "next/server";
 import openai from "@/lib/openai";
 
 export async function POST(request: Request) {
-  const formData = await request.formData();
-  const file = formData.get("file") as File | null;
+  const url = new URL(request.url);
+  const name = url.searchParams.get("name") ?? "file";
+  const type = url.searchParams.get("type") ?? "application/octet-stream";
 
-  if (!file) {
-    return NextResponse.json({ error: "No file provided" }, { status: 400 });
+  const buffer = Buffer.from(await request.arrayBuffer());
+  if (!buffer.length) {
+    return NextResponse.json({ error: "Empty file" }, { status: 400 });
   }
 
   try {
+    const file = new File([buffer], name, { type });
     const uploaded = await openai.files.create({
       file,
       purpose: "assistants",
@@ -17,14 +20,14 @@ export async function POST(request: Request) {
 
     return NextResponse.json({
       file_id: uploaded.id,
-      name: file.name,
-      type: file.type || "application/octet-stream",
+      name,
+      type,
     });
   } catch (err) {
     console.error("[/api/upload] OpenAI error:", err);
     return NextResponse.json(
       { error: "Failed to upload file" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
