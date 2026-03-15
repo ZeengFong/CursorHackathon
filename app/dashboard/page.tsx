@@ -130,9 +130,17 @@ export default function Dashboard() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) { setMounted(true); return; }
 
-      // Set user name from metadata
-      const displayName = user.user_metadata?.display_name || user.email?.split("@")[0] || "User";
-      setUserName(displayName);
+      // Set user name — priority: localStorage > OAuth metadata > email slug
+      const storedDisplayName = (() => {
+        try { return localStorage.getItem('clearhead_display_name') } catch { return null }
+      })()
+      const metaName = user?.user_metadata?.display_name || user?.user_metadata?.full_name || null
+      const emailSlug = (() => {
+        if (!user?.email) return 'there'
+        const slug = user.email.split('@')[0]
+        return slug.replace(/[._-]/g, ' ').replace(/\b\w/g, (c: string) => c.toUpperCase())
+      })()
+      setUserName(storedDisplayName || metaName || emailSlug);
 
       const { data, error } = await supabase
         .from("tasks")

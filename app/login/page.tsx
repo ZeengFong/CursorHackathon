@@ -149,10 +149,16 @@ export default function LoginPage() {
             sessionStorage.clear();
           }
           sessionStorage.setItem("BrainDump_current_user", user.id);
-          sessionStorage.setItem(
-            "BrainDump_user",
-            user.user_metadata?.display_name || user.email?.split("@")[0] || "User"
-          );
+          const storedDisplayName = (() => {
+            try { return localStorage.getItem('clearhead_display_name') } catch { return null }
+          })()
+          const metaName = user?.user_metadata?.display_name || user?.user_metadata?.full_name || null
+          const emailSlug = (() => {
+            if (!user?.email) return 'User'
+            const slug = user.email.split('@')[0]
+            return slug.replace(/[._-]/g, ' ').replace(/\b\w/g, (c: string) => c.toUpperCase())
+          })()
+          sessionStorage.setItem("BrainDump_user", storedDisplayName || metaName || emailSlug);
         }
       } catch {
         sessionStorage.clear();
@@ -188,10 +194,16 @@ export default function LoginPage() {
         const { data: { user } } = await supabase.auth.getUser();
         if (user) {
           sessionStorage.setItem("BrainDump_current_user", user.id);
-          sessionStorage.setItem(
-            "BrainDump_user",
-            user.user_metadata?.display_name || user.email?.split("@")[0] || "User"
-          );
+          const storedDisplayName = (() => {
+            try { return localStorage.getItem('clearhead_display_name') } catch { return null }
+          })()
+          const metaName = user?.user_metadata?.display_name || user?.user_metadata?.full_name || null
+          const emailSlug = (() => {
+            if (!user?.email) return 'User'
+            const slug = user.email.split('@')[0]
+            return slug.replace(/[._-]/g, ' ').replace(/\b\w/g, (c: string) => c.toUpperCase())
+          })()
+          sessionStorage.setItem("BrainDump_user", storedDisplayName || metaName || emailSlug);
         }
       } catch { /* ignore */ }
       setSuMsg({ type: "success", text: "Check your email to confirm your account." });
