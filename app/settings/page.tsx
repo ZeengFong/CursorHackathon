@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
+import { clearCachedTasks } from "@/lib/task-cache";
 
 // ── Local-storage helpers ─────────────────────────────────────────────
 function lsGet(key: string, fallback: string): string {
@@ -235,6 +236,7 @@ export default function SettingsPage() {
 
   function clearTasks() {
     try { sessionStorage.removeItem("BrainDump_tasks"); } catch {}
+    clearCachedTasks();
     setClearMsg("All tasks cleared.");
     setTimeout(() => setClearMsg(""), 2000);
   }
@@ -246,6 +248,7 @@ export default function SettingsPage() {
       // If Supabase sign out fails, continue anyway
     } finally {
       try { sessionStorage.clear(); } catch {}
+      clearCachedTasks();
       [
         "BrainDump_tasks", "BrainDump_tasks",
         "BrainDump_voice_enabled", "BrainDump_display_name",

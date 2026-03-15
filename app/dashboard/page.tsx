@@ -11,6 +11,7 @@ import CalendarMode from "./components/CalendarMode";
 import MindLetter from "./components/MindLetter";
 
 import { supabase } from "@/lib/supabase"
+import { getCachedTasks, setCachedTasks } from "@/lib/task-cache"
 
 // ── Types ──────────────────────────────────────────────────────────────
 export type AppMode = "dump" | "triage" | "focus" | "reset" | "calendar";
@@ -107,9 +108,13 @@ export default function Dashboard() {
   const [showLetter, setShowLetter] = useState(false);
   const lastSpeakKey = useRef<string>("");
 
-  // Load tasks from Supabase
+  // Load tasks: instant from localStorage cache, then refresh from Supabase
   useEffect(() => {
     const loadTasks = async () => {
+      // Instant cache load to avoid flash of empty state
+      const cached = getCachedTasks();
+      if (cached) setTasks(cached);
+
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) { setMounted(true); return; }
 
@@ -123,21 +128,21 @@ export default function Dashboard() {
         .eq("user_id", user.id)
         .order("created_at", { ascending: true });
 
+      let freshTasks: Task[] = [];
       if (error) {
         console.error("Failed to load tasks:", error.message);
-        setTasks([]);
       } else if (data && data.length > 0) {
-        setTasks(data.map((row: Record<string, unknown>) => ({
+        freshTasks = data.map((row: Record<string, unknown>) => ({
           id: String(row.id),
           text: String(row.Name ?? ""),
           category: (["now", "later", "drop"].includes(row.category as string) ? row.category : "later") as Category,
           status: row.completed ? "done" as const : "pending" as const,
           source: (["voice", "file", "typed"].includes(row.source as string) ? row.source : "typed") as Task["source"],
           due_date: row.due_date ? String(row.due_date).split("T")[0] : undefined,
-        })));
-      } else {
-        setTasks([]);
+        }));
       }
+      setTasks(freshTasks);
+      setCachedTasks(freshTasks);
       setMounted(true);
 
       // Show banner if user arrived after a dump from landing page
@@ -150,6 +155,11 @@ export default function Dashboard() {
     };
     loadTasks();
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Keep localStorage cache in sync with task mutations
+  useEffect(() => {
+    if (mounted) setCachedTasks(tasks);
+  }, [tasks, mounted]);
 
   // ── Task mutations (synced to Supabase) ─────────────────────────────
   const updateTask = (id: string, updates: Partial<Task>) => {
