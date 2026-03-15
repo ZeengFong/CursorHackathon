@@ -11,6 +11,7 @@ import CalendarMode from "./components/CalendarMode";
 import MindLetter from "./components/MindLetter";
 
 import { supabase } from "@/lib/supabase"
+import { generateKeyBetween } from "fractional-indexing";
 import { getCachedTasks, setCachedTasks } from "@/lib/task-cache"
 
 // ── Types ──────────────────────────────────────────────────────────────
@@ -24,6 +25,7 @@ export interface Task {
   status: "pending" | "done";
   source: "voice" | "file" | "typed";
   due_date?: string;
+  sort_order?: string | null;
 }
 
 // ── Migrate old task shape → new ──────────────────────────────────────
@@ -37,6 +39,7 @@ function migrateTask(raw: Record<string, unknown>): Task {
     status:   raw.status === "done" || raw.done === true ? "done" : "pending",
     source:   validSources.has(raw.source as string) ? (raw.source as Task["source"]) : "typed",
     due_date: typeof raw.due_date === "string" ? raw.due_date : undefined,
+    sort_order: typeof raw.sort_order === "string" ? raw.sort_order : null,
   };
 }
 
@@ -126,6 +129,7 @@ export default function Dashboard() {
         .from("tasks")
         .select("*")
         .eq("user_id", user.id)
+        .order("sort_order", { ascending: true, nullsFirst: false })
         .order("created_at", { ascending: true });
 
       let freshTasks: Task[] = [];
@@ -139,6 +143,7 @@ export default function Dashboard() {
           status: row.completed ? "done" as const : "pending" as const,
           source: (["voice", "file", "typed"].includes(row.source as string) ? row.source : "typed") as Task["source"],
           due_date: row.due_date ? String(row.due_date).split("T")[0] : undefined,
+          sort_order: typeof row.sort_order === "string" ? row.sort_order : null,
         }));
       }
       setTasks(freshTasks);
@@ -172,6 +177,7 @@ export default function Dashboard() {
     if (updates.category !== undefined) patch.category = updates.category;
     if (updates.source !== undefined) patch.source = updates.source;
     if (updates.due_date !== undefined) patch.due_date = updates.due_date || null;
+    if (updates.sort_order !== undefined) patch.sort_order = updates.sort_order;
 
     supabase.from("tasks").update(patch).eq("id", Number(id)).then(({ error }) => {
       if (error) console.error("Failed to sync task update:", error.message);
@@ -182,6 +188,17 @@ export default function Dashboard() {
     sessionStorage.removeItem('clearhead_letter');
     const migrated = newTasks.map((t) => migrateTask(t as unknown as Record<string, unknown>));
 
+    // Assign sort_order to new tasks (append to end of "later" list)
+    const laterSorted = tasks
+      .filter((t) => t.category === "later" && t.sort_order)
+      .sort((a, b) => (a.sort_order! < b.sort_order! ? -1 : 1));
+    let lastKey = laterSorted.length > 0 ? laterSorted[laterSorted.length - 1].sort_order! : null;
+    for (const t of migrated) {
+      const newKey = generateKeyBetween(lastKey, null);
+      t.sort_order = newKey;
+      lastKey = newKey;
+    }
+
     // Insert into Supabase and use returned IDs
     const { data: { user } } = await supabase.auth.getUser();
     if (user) {
@@ -191,6 +208,7 @@ export default function Dashboard() {
         category: t.category,
         source: t.source,
         due_date: t.due_date || null,
+        sort_order: t.sort_order || null,
         user_id: user.id,
       }));
 
@@ -203,6 +221,7 @@ export default function Dashboard() {
           status: row.completed ? "done" as const : "pending" as const,
           source: (row.source as Task["source"]) ?? "typed",
           due_date: row.due_date ? String(row.due_date).split("T")[0] : undefined,
+          sort_order: typeof row.sort_order === "string" ? row.sort_order : null,
         }));
         setTasks((prev) => [...prev, ...dbTasks]);
         return;

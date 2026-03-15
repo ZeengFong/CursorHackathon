@@ -37,10 +37,17 @@ function parseDateForSort(dateStr: string | null | undefined): number {
   return isNaN(d.getTime()) ? Infinity : d.getTime();
 }
 
-function sortByDueDate<T extends { due_date?: string | null }>(tasks: T[]): T[] {
-  return [...tasks].sort(
-    (a, b) => parseDateForSort(a.due_date) - parseDateForSort(b.due_date)
-  );
+function sortTasks<T extends { sort_order?: string | null; due_date?: string | null }>(tasks: T[]): T[] {
+  return [...tasks].sort((a, b) => {
+    // Primary: sort_order ascending, nulls last
+    if (a.sort_order && b.sort_order) {
+      return a.sort_order < b.sort_order ? -1 : a.sort_order > b.sort_order ? 1 : 0;
+    }
+    if (a.sort_order && !b.sort_order) return -1;
+    if (!a.sort_order && b.sort_order) return 1;
+    // Secondary: due_date ascending, nulls last
+    return parseDateForSort(a.due_date) - parseDateForSort(b.due_date);
+  });
 }
 
 // ── Deadline badge ────────────────────────────────────────────────────
@@ -522,17 +529,17 @@ export default function TriageMode({ tasks, updateTask, addTasks, deleteTask, on
   };
 
   const urgentFromOther = visibleTasks.filter((t) => t.category !== "now" && isUrgent(t));
-  const allNowSorted   = sortByDueDate([
+  const allNowSorted   = sortTasks([
     ...visibleTasks.filter((t) => t.category === "now"),
     ...urgentFromOther,
   ]);
   const urgentIds = new Set(urgentFromOther.map((t) => t.id));
-  const allLaterSorted = sortByDueDate(visibleTasks.filter((t) => t.category === "later" && !urgentIds.has(t.id)));
+  const allLaterSorted = sortTasks(visibleTasks.filter((t) => t.category === "later" && !urgentIds.has(t.id)));
 
   const nowTasks    = allNowSorted.slice(0, 3);
   const nowOverflow = allNowSorted.slice(3);
   const laterTasks  = [...nowOverflow, ...allLaterSorted].slice(0, 10);
-  const dropTasks   = visibleTasks.filter((t) => t.category === "drop" && !urgentIds.has(t.id));
+  const dropTasks   = sortTasks(visibleTasks.filter((t) => t.category === "drop" && !urgentIds.has(t.id)));
 
   // ── Which column does a task currently appear in? ─────────────────
   const getDisplayColumn = (taskId: string): ColumnId | null => {
