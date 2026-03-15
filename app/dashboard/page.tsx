@@ -10,6 +10,7 @@ import MascotOrb from "./components/MascotOrb";
 import CalendarMode from "./components/CalendarMode";
 import MindLetter from "./components/MindLetter";
 import HomeMode from "./components/HomeMode";
+import PanicPlayer from "./components/PanicPlayer";
 
 import { supabase } from "@/lib/supabase"
 import { generateKeyBetween } from "fractional-indexing";
@@ -112,6 +113,7 @@ export default function Dashboard() {
   const [dismissedText, setDismissedText] = useState<string | null>(null);
   const [restoredBanner, setRestoredBanner] = useState(false);
   const [showLetter, setShowLetter] = useState(false);
+  const [showPanic, setShowPanic] = useState(false);
   const lastSpeakKey = useRef<string>("");
 
   // Load tasks: instant from localStorage cache, then refresh from Supabase
@@ -326,6 +328,7 @@ export default function Dashboard() {
           voiceEnabled={voiceEnabled}
           setVoiceEnabled={setVoiceEnabled}
           userName={userName}
+          onPanic={() => setShowPanic(true)}
         />
       </div>
 
@@ -371,6 +374,10 @@ export default function Dashboard() {
           tasks={tasks}
           onClose={() => setShowLetter(false)}
         />
+      )}
+
+      {showPanic && (
+        <PanicPlayer onClose={() => setShowPanic(false)} />
       )}
 
       {/* Mobile bottom nav */}
