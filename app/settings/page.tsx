@@ -150,11 +150,10 @@ export default function SettingsPage() {
   const [calSaved, flashCal]    = useSaved();
 
   // ── Calendar integration ──────────────────────────────────────────
-  const [gcalSyncing, setGcalSyncing] = useState(false);
-  const [gcalMsg, setGcalMsg] = useState<{ type: "success" | "error"; text: string } | null>(null);
   const [icsSyncing, setIcsSyncing] = useState(false);
   const [calFeedUrl, setCalFeedUrl] = useState<string | null>(null);
   const [feedCopied, setFeedCopied] = useState(false);
+  const [calMsg, setCalMsg] = useState<{ type: "success" | "error"; text: string } | null>(null);
 
   // ── Task archive ───────────────────────────────────────────────────
   const [archivedTasks, setArchivedTasks] = useState<{ id: number; Name: string; category: string; due_date: string | null; created_at: string }[]>([]);
@@ -206,13 +205,6 @@ export default function SettingsPage() {
       }
     })();
 
-    // Auto-sync Google Calendar if we just came back from re-auth
-    if (lsBool("BrainDump_gcal_pending", false)) {
-      lsSet("BrainDump_gcal_pending", "false");
-      // Small delay to let session settle
-      setTimeout(() => syncGoogleCalendar(), 500);
-    }
-
     return () => window.speechSynthesis?.removeEventListener("voiceschanged", loadVoices);
   }, []);
 
@@ -247,70 +239,25 @@ export default function SettingsPage() {
     flashCal();
   }
 
-  async function getCalendarTasks() {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) throw new Error("Not signed in");
-    const { data } = await supabase
-      .from("tasks")
-      .select("Name, Description, due_date")
-      .eq("user_id", user.id)
-      .eq("completed", false)
-      .not("due_date", "is", null);
-    return (data ?? []).map((t: Record<string, unknown>) => ({
-      name: String(t.Name ?? ""),
-      description: typeof t.Description === "string" ? t.Description : null,
-      due_date: String(t.due_date ?? "").split("T")[0],
-    }));
-  }
-
-  async function syncGoogleCalendar() {
-    setGcalSyncing(true);
-    setGcalMsg(null);
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      const providerToken = session?.provider_token;
-      if (!providerToken) {
-        // Re-auth with Google to get calendar scope token, then come back
-        lsSet("BrainDump_gcal_pending", "true");
-        await supabase.auth.signInWithOAuth({
-          provider: "google",
-          options: {
-            redirectTo: window.location.origin + "/auth/callback?next=/settings",
-            scopes: "https://www.googleapis.com/auth/calendar.events",
-          },
-        });
-        return;
-      }
-      const tasks = await getCalendarTasks();
-      if (tasks.length === 0) {
-        setGcalMsg({ type: "error", text: "No tasks with due dates to sync." });
-        setGcalSyncing(false);
-        return;
-      }
-      const res = await fetch("/api/calendar/sync", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ providerToken, tasks }),
-      });
-      const data = await res.json();
-      if (data.error) {
-        setGcalMsg({ type: "error", text: data.error });
-      } else {
-        setGcalMsg({ type: "success", text: `Synced ${data.synced} task${data.synced !== 1 ? "s" : ""} to Google Calendar.` });
-      }
-    } catch (err) {
-      setGcalMsg({ type: "error", text: err instanceof Error ? err.message : "Sync failed." });
-    } finally {
-      setGcalSyncing(false);
-    }
-  }
-
   async function exportIcs() {
     setIcsSyncing(true);
+    setCalMsg(null);
     try {
-      const tasks = await getCalendarTasks();
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("Not signed in");
+      const { data } = await supabase
+        .from("tasks")
+        .select("Name, Description, due_date")
+        .eq("user_id", user.id)
+        .eq("completed", false)
+        .not("due_date", "is", null);
+      const tasks = (data ?? []).map((t: Record<string, unknown>) => ({
+        name: String(t.Name ?? ""),
+        description: typeof t.Description === "string" ? t.Description : null,
+        due_date: String(t.due_date ?? "").split("T")[0],
+      }));
       if (tasks.length === 0) {
-        setGcalMsg({ type: "error", text: "No tasks with due dates to export." });
+        setCalMsg({ type: "error", text: "No tasks with due dates to export." });
         setIcsSyncing(false);
         return;
       }
@@ -328,7 +275,7 @@ export default function SettingsPage() {
       a.click();
       URL.revokeObjectURL(url);
     } catch {
-      setGcalMsg({ type: "error", text: "Failed to export .ics file." });
+      setCalMsg({ type: "error", text: "Failed to export .ics file." });
     } finally {
       setIcsSyncing(false);
     }
@@ -620,44 +567,30 @@ export default function SettingsPage() {
           {/* ── Calendar integration ──────────────────────────────────── */}
           <Section title="Calendar integration">
             <div>
-              <p className="font-sans text-sm text-[#E8EAF0]">Sync tasks to your calendar</p>
+              <p className="font-sans text-sm text-[#E8EAF0]">Add tasks to your calendar</p>
               <p className="mt-0.5 font-sans text-[12px] text-[#A0A8B8]/50">
                 Pending tasks with due dates appear as 9 PM – 11:59 PM events. Done tasks are excluded.
               </p>
             </div>
 
-            <div className="flex flex-wrap gap-3">
-              <button
-                onClick={syncGoogleCalendar}
-                disabled={gcalSyncing}
-                className="inline-flex items-center gap-2 px-4 py-2 bg-[#1D9E75] hover:bg-[#5DCAA5] disabled:opacity-50 text-white font-sans font-medium text-sm rounded-lg transition-colors"
-              >
-                <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-4 h-4 shrink-0">
-                  <rect x="2" y="4" width="16" height="14" rx="2" />
-                  <path strokeLinecap="round" d="M6 2v3M14 2v3M2 9h16" />
-                </svg>
-                {gcalSyncing ? "Syncing…" : "Sync to Google Calendar"}
-              </button>
+            <button
+              onClick={exportIcs}
+              disabled={icsSyncing}
+              className="inline-flex items-center gap-2 px-4 py-2 bg-[#1D9E75] hover:bg-[#5DCAA5] disabled:opacity-50 text-white font-sans font-medium text-sm rounded-lg transition-colors"
+            >
+              <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-4 h-4 shrink-0">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M10 3v10m0 0-3-3m3 3 3-3M4 15h12" />
+              </svg>
+              {icsSyncing ? "Exporting…" : "Download .ics"}
+            </button>
 
-              <button
-                onClick={exportIcs}
-                disabled={icsSyncing}
-                className="inline-flex items-center gap-2 px-4 py-2 border-2 border-white/8 hover:border-white/14 text-[#A0A8B8] hover:text-[#E8EAF0] font-sans font-medium text-sm rounded-lg transition-colors disabled:opacity-50"
-              >
-                <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-4 h-4 shrink-0">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M10 3v10m0 0-3-3m3 3 3-3M4 15h12" />
-                </svg>
-                {icsSyncing ? "Exporting…" : "Download .ics"}
-              </button>
-            </div>
-
-            {/* Live subscription URL for Apple Calendar */}
+            {/* Live subscription URL */}
             {calFeedUrl && (
               <div className="flex flex-col gap-2">
                 <div>
                   <p className="font-sans text-sm text-[#E8EAF0]">Live calendar subscription</p>
                   <p className="mt-0.5 font-sans text-[12px] text-[#A0A8B8]/50">
-                    Subscribe in Apple Calendar or any app that supports ICS feeds. Updates automatically — done tasks disappear, new tasks appear.
+                    Subscribe in Apple Calendar, Google Calendar, or any app that supports ICS feeds. Updates automatically — done tasks disappear, new tasks appear.
                   </p>
                 </div>
                 <div className="flex gap-2">
@@ -680,18 +613,19 @@ export default function SettingsPage() {
                   </button>
                 </div>
                 <p className="font-sans text-[11px] text-[#A0A8B8]/35">
-                  Apple Calendar: File → New Calendar Subscription → paste URL. Keep this URL private.
+                  Apple Calendar: File → New Calendar Subscription → paste URL.
+                  Google Calendar: Other calendars (+) → From URL → paste. Keep this URL private.
                 </p>
               </div>
             )}
 
-            {gcalMsg && (
+            {calMsg && (
               <p className={`font-sans text-[12.5px] px-3 py-2 rounded-lg ${
-                gcalMsg.type === "error"
+                calMsg.type === "error"
                   ? "text-[#E07878] bg-[#D85A30]/8 border-2 border-[#D85A30]/15"
                   : "text-[#5DCAA5] bg-[#1D9E75]/8 border-2 border-[#1D9E75]/15"
               }`}>
-                {gcalMsg.text}
+                {calMsg.text}
               </p>
             )}
           </Section>
