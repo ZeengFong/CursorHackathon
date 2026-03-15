@@ -644,17 +644,26 @@ export default function TriageMode({ tasks, updateTask, addTasks, deleteTask, on
     return null;
   };
 
-  // ── Promote an upcoming task to top of "Do later" ─────────────────
+  // ── Promote an upcoming task — directly to "Do now" if there's room ─
   const promoteToLaterTop = (taskId: string) => {
-    const firstLater = laterTasks[0];
-    const topKey = generateKeyBetween(null, firstLater?.sort_order ?? null);
     const task = visibleTasks.find((t) => t.id === taskId);
     if (!task) return;
-    const updates: Partial<Task> = { sort_order: topKey };
-    if (task.category !== "later") {
-      updates.category = "later";
+
+    if (nowTasks.length < DO_NOW_CAP) {
+      // Room in "Do now" — place at the bottom of "now" directly
+      const lastNow = nowTasks[nowTasks.length - 1];
+      const bottomKey = generateKeyBetween(lastNow?.sort_order ?? null, null);
+      updateTask(taskId, { category: "now", sort_order: bottomKey });
+    } else {
+      // "Do now" is full — place at top of "Do later"
+      const firstLater = laterTasks[0];
+      const topKey = generateKeyBetween(null, firstLater?.sort_order ?? null);
+      const updates: Partial<Task> = { sort_order: topKey };
+      if (task.category !== "later") {
+        updates.category = "later";
+      }
+      updateTask(taskId, updates);
     }
-    updateTask(taskId, updates);
   };
 
   // ── Drag handlers ─────────────────────────────────────────────────
