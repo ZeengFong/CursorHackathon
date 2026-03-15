@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState, useCallback } from "react";
+import { supabase } from "@/lib/supabase";
 
 // ── Types ─────────────────────────────────────────────────────────────
 export interface FilePayload {
@@ -184,10 +185,19 @@ export default function DumpInput({
   const canSubmit = (text.trim().length > 0 || files.length > 0) && !loading;
 
   const uploadFile = async (file: File): Promise<FilePayload> => {
-    const res = await fetch(
-      `/api/upload?name=${encodeURIComponent(file.name)}&type=${encodeURIComponent(file.type || "application/octet-stream")}`,
-      { method: "POST", body: file },
-    );
+    // Upload to Supabase Storage first (bypasses Vercel 4.5MB body limit)
+    const path = `${crypto.randomUUID()}-${file.name}`;
+    const { error: storageError } = await supabase.storage
+      .from("uploads")
+      .upload(path, file);
+    if (storageError) throw new Error(`Storage upload failed: ${storageError.message}`);
+
+    // Then tell our server to fetch from Supabase and forward to OpenAI
+    const res = await fetch("/api/upload", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ path, name: file.name, type: file.type || "application/octet-stream" }),
+    });
     if (!res.ok) throw new Error(`Upload failed for ${file.name}`);
     return res.json();
   };
