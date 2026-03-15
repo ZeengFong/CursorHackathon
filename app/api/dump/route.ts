@@ -42,7 +42,7 @@ export async function POST(request: Request) {
         { role: "system", content: TRIAGE_SYSTEM_PROMPT },
         { role: "user", content: userContent },
       ],
-      max_tokens: 50000,
+      max_tokens: 200000,
       temperature: 0.3,
       response_format: { type: "json_object" },
     });
