@@ -918,12 +918,24 @@ function AdvisorMicWrapper({
   };
 
   const stopRecording = async () => {
-    recognitionRef.current?.stop();
+    if (!recognitionRef.current) return;
     setIsRecording(false);
+    setIsLoading(true); // show thinking spinner during buffer
+
+    // Keep recognition alive for 2s to capture trailing speech
+    await new Promise((r) => setTimeout(r, 2000));
+    recognitionRef.current?.stop();
+    // Small grace period for final onresult event
+    await new Promise((r) => setTimeout(r, 200));
+
     const text = transcriptRef.current.trim();
     transcriptRef.current = "";
     console.log("[stt] transcript →", text || "(empty)");
-    if (text) await sendToAdvisor(text);
+    if (text) {
+      await sendToAdvisor(text);
+    } else {
+      setIsLoading(false); // reset if nothing captured
+    }
   };
 
   // Keep refs in sync so the keyboard listener calls current versions
