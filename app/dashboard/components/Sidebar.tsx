@@ -66,22 +66,15 @@ interface Props {
   voiceEnabled: boolean;
   setVoiceEnabled: (v: boolean) => void;
   userName: string;
+  onPanic: () => void;
 }
 
-export default function Sidebar({ mode, setMode, taskCount, voiceEnabled, setVoiceEnabled, userName }: Props) {
+export default function Sidebar({ mode, setMode, taskCount, voiceEnabled, setVoiceEnabled, userName, onPanic }: Props) {
   const router = useRouter();
 
   const initials = userName
     ? userName.split(" ").map((w) => w[0]).join("").slice(0, 2).toUpperCase()
     : "CL";
-
-  const handlePanic = () => {
-    const url =
-      typeof window !== "undefined"
-        ? (localStorage.getItem("BrainDump_panic_url") ?? "https://poki.com/en/g/subway-surfers")
-        : "https://poki.com/en/g/subway-surfers";
-    window.open(url, "_blank");
-  };
 
   return (
     <aside className="p-4 pr-0 h-screen">
@@ -120,7 +113,7 @@ export default function Sidebar({ mode, setMode, taskCount, voiceEnabled, setVoi
         {/* Panic button */}
         <div className="px-1 mb-3">
           <button
-            onClick={handlePanic}
+            onClick={onPanic}
             className="panic-btn w-full py-2.5 px-3 rounded-lg text-left font-sans text-[13px] font-medium transition-colors flex items-center gap-2"
             style={{
               color: "#D85A30",

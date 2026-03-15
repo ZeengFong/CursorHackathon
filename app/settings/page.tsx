@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { clearCachedTasks } from "@/lib/task-cache";
@@ -122,11 +122,6 @@ const INPUT_CLS =
   "w-full bg-[#0D0F14] border-2 border-white/8 focus:border-[#1D9E75]/55 focus:shadow-[0_0_0_3px_rgba(29,158,117,0.07)] rounded-xl py-2.5 px-4 font-sans text-sm text-[#E8EAF0] placeholder-[#A0A8B8]/35 outline-none transition-[border-color,box-shadow] duration-200";
 
 // ── Quick panic URLs ──────────────────────────────────────────────────
-const QUICK_URLS = [
-  { label: "Subway Surfers", url: "https://poki.com/en/g/subway-surfers" },
-  { label: "YouTube",        url: "https://youtube.com" },
-  { label: "TikTok",         url: "https://tiktok.com" },
-];
 
 // ── Page ──────────────────────────────────────────────────────────────
 export default function SettingsPage() {
@@ -145,8 +140,9 @@ export default function SettingsPage() {
   const [voiceSaved, flashVoice]            = useSaved();
 
   // ── Panic URL ────────────────────────────────────────────────────────
-  const [panicUrl, setPanicUrl]  = useState("https://poki.com/en/g/subway-surfers");
+  const [panicUrl, setPanicUrl]  = useState("https://www.youtube.com/watch?v=jfKfPfyJRdk");
   const [panicSaved, flashPanic] = useSaved();
+  const panicInputRef = useRef<HTMLInputElement>(null);
 
   // ── Calendar prefs ──────────────────────────────────────────────────
   const [autoDate, setAutoDate] = useState(true);
@@ -170,7 +166,7 @@ export default function SettingsPage() {
     setClarifyEnabled(lsBool("BrainDump_clarify_enabled", false));
     setSelectedVoice(lsGet("BrainDump_voice_name", ""));
 
-    setPanicUrl(lsGet("BrainDump_panic_url", "https://poki.com/en/g/subway-surfers"));
+    setPanicUrl(lsGet("BrainDump_panic_url", "https://www.youtube.com/watch?v=jfKfPfyJRdk"));
 
     setAutoDate(lsBool("BrainDump_autodate", true));
     setShowPast(lsBool("BrainDump_show_past", false));
@@ -374,12 +370,13 @@ export default function SettingsPage() {
               <div>
                 <p className="font-sans text-sm font-medium text-[#E8EAF0]">Your escape hatch</p>
                 <p className="mt-0.5 font-sans text-[12px] text-[#A0A8B8]/50">
-                  When everything&apos;s too much, this is where BrainDump sends you.
+                  Paste a YouTube video, YouTube playlist, or Spotify playlist URL. Opens as a full-screen player inside the app. Must be a specific video or playlist — not a homepage URL.
                 </p>
               </div>
 
               <div className="flex flex-col gap-2">
                 <input
+                  ref={panicInputRef}
                   type="url"
                   value={panicUrl}
                   onChange={(e) => setPanicUrl(e.target.value)}
@@ -387,20 +384,97 @@ export default function SettingsPage() {
                   className={INPUT_CLS}
                 />
 
+                {(() => {
+                  const isHomepage =
+                    panicUrl === "https://youtube.com" ||
+                    panicUrl === "https://www.youtube.com" ||
+                    panicUrl === "http://youtube.com" ||
+                    panicUrl === "youtube.com"
+
+                  const isTikTokOrX =
+                    panicUrl.includes("tiktok.com") ||
+                    panicUrl.includes("x.com") ||
+                    panicUrl.includes("twitter.com")
+
+                  if (isTikTokOrX) return (
+                    <p className="font-sans text-[11px] text-[#D85A30]/70 mt-0.5">
+                      TikTok and X cannot be embedded in browsers. Use a YouTube or Spotify URL instead.
+                    </p>
+                  )
+
+                  if (isHomepage) return (
+                    <p className="font-sans text-[11px] text-[#EF9F27]/70 mt-0.5">
+                      Paste a specific video URL, not the homepage. Example: youtube.com/watch?v=jfKfPfyJRdk
+                    </p>
+                  )
+
+                  if (panicUrl &&
+                      !panicUrl.includes("youtube.com") &&
+                      !panicUrl.includes("youtu.be") &&
+                      !panicUrl.includes("spotify.com")) return (
+                    <p className="font-sans text-[11px] text-[#EF9F27]/70 mt-0.5">
+                      Only YouTube and Spotify URLs are supported.
+                    </p>
+                  )
+
+                  return null
+                })()}
+
                 <div className="flex flex-wrap gap-2">
-                  {QUICK_URLS.map(({ label, url }) => (
-                    <button
-                      key={url}
-                      onClick={() => setPanicUrl(url)}
-                      className={`font-sans text-[11px] px-3 py-1.5 rounded-lg border-2 transition-colors ${
-                        panicUrl === url
-                          ? "border-[#D85A30]/40 text-[#D85A30] bg-[#D85A30]/10"
-                          : "border-white/8 text-[#A0A8B8]/50 hover:text-[#A0A8B8] hover:border-white/14"
-                      }`}
-                    >
-                      {label}
-                    </button>
-                  ))}
+                  {/* Lofi beats — teal accent, recommended default */}
+                  {(() => {
+                    const lofiUrl = "https://www.youtube.com/watch?v=jfKfPfyJRdk"
+                    const isActive = panicUrl === lofiUrl
+                    return (
+                      <button
+                        onClick={() => {
+                          setPanicUrl(lofiUrl)
+                          lsSet("BrainDump_panic_url", lofiUrl)
+                          flashPanic()
+                        }}
+                        className={`font-sans text-[11px] px-3 py-1.5 rounded-lg border-2 transition-colors ${
+                          isActive
+                            ? "border-teal/40 text-teal-light bg-teal/10"
+                            : "border-white/8 text-muted/50 hover:text-muted hover:border-white/14"
+                        }`}
+                      >
+                        Lofi beats
+                      </button>
+                    )
+                  })()}
+
+                  {/* Nature sounds */}
+                  {(() => {
+                    const natureUrl = "https://www.youtube.com/watch?v=eKFTSSKCzWA"
+                    const isActive = panicUrl === natureUrl
+                    return (
+                      <button
+                        onClick={() => {
+                          setPanicUrl(natureUrl)
+                          lsSet("BrainDump_panic_url", natureUrl)
+                          flashPanic()
+                        }}
+                        className={`font-sans text-[11px] px-3 py-1.5 rounded-lg border-2 transition-colors ${
+                          isActive
+                            ? "border-[#D85A30]/40 text-[#D85A30] bg-[#D85A30]/10"
+                            : "border-white/8 text-muted/50 hover:text-muted hover:border-white/14"
+                        }`}
+                      >
+                        Nature sounds
+                      </button>
+                    )
+                  })()}
+
+                  {/* Custom — clears input and focuses it */}
+                  <button
+                    onClick={() => {
+                      setPanicUrl("")
+                      setTimeout(() => panicInputRef.current?.focus(), 0)
+                    }}
+                    className="font-sans text-[11px] px-3 py-1.5 rounded-lg border-2 transition-colors border-white/8 text-muted/50 hover:text-muted hover:border-white/14"
+                  >
+                    Custom
+                  </button>
                 </div>
 
                 {panicDomain && (
