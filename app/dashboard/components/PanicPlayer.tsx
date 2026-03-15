@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 
 interface PanicPlayerProps {
   onClose: () => void
@@ -113,6 +113,11 @@ export default function PanicPlayer({ onClose }: PanicPlayerProps) {
     return () => clearTimeout(t)
   }, [])
 
+  const handleClose = useCallback(() => {
+    setVisible(false)
+    setTimeout(onClose, 300)
+  }, [onClose])
+
   // Escape key closes the player
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -120,13 +125,7 @@ export default function PanicPlayer({ onClose }: PanicPlayerProps) {
     }
     window.addEventListener('keydown', handler)
     return () => window.removeEventListener('keydown', handler)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
-
-  const handleClose = () => {
-    setVisible(false)
-    setTimeout(onClose, 300)
-  }
+  }, [handleClose])
 
   const isSpotify = embedSrc.includes('spotify.com')
 

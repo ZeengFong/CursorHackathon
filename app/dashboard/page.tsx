@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import Sidebar from "./components/Sidebar";
 import TriageMode from "./components/TriageMode";
 import FocusMode from "./components/FocusMode";
@@ -102,6 +102,8 @@ export default function Dashboard() {
   const [restoredBanner, setRestoredBanner] = useState(false);
   const [showLetter, setShowLetter] = useState(false);
   const [showPanic, setShowPanic] = useState(false);
+  const userIdRef = useRef<string | null>(null);
+  const cacheTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Load tasks: instant from localStorage cache, then refresh from Supabase
   useEffect(() => {
@@ -112,6 +114,7 @@ export default function Dashboard() {
 
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) { setMounted(true); return; }
+      userIdRef.current = user.id;
 
       // Set user name — priority: localStorage > OAuth metadata > email slug
       const storedDisplayName = (() => {
@@ -188,9 +191,12 @@ export default function Dashboard() {
     loadTasks();
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Keep localStorage cache in sync with task mutations
+  // Keep localStorage cache in sync — debounced to avoid blocking main thread
   useEffect(() => {
-    if (mounted) setCachedTasks(tasks);
+    if (!mounted) return;
+    if (cacheTimerRef.current) clearTimeout(cacheTimerRef.current);
+    cacheTimerRef.current = setTimeout(() => setCachedTasks(tasks), 500);
+    return () => { if (cacheTimerRef.current) clearTimeout(cacheTimerRef.current); };
   }, [tasks, mounted]);
 
   // ── Task mutations (synced to Supabase) ─────────────────────────────
@@ -226,9 +232,9 @@ export default function Dashboard() {
       lastKey = newKey;
     }
 
-    // Insert into Supabase and use returned IDs
-    const { data: { user } } = await supabase.auth.getUser();
-    if (user) {
+    // Insert into Supabase using cached user ID (avoids network round-trip)
+    const userId = userIdRef.current;
+    if (userId) {
       const rows = migrated.map((t) => ({
         Name: t.text,
         Description: t.description || null,
@@ -237,7 +243,7 @@ export default function Dashboard() {
         source: t.source,
         due_date: t.due_date || null,
         sort_order: t.sort_order || null,
-        user_id: user.id,
+        user_id: userId,
       }));
 
       const { data, error } = await supabase.from("tasks").insert(rows).select();

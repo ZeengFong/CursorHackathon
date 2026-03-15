@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import type { Task } from "../page";
+import { sortTasks } from "@/lib/sort-tasks";
 
 interface Props {
   tasks: Task[];
@@ -34,19 +35,10 @@ function SkeletonSteps() {
 }
 
 export default function FocusMode({ tasks }: Props) {
-  const nowTasks = tasks
-    .filter((t) => t.category === "now" && t.status !== "done")
-    .sort((a, b) => {
-      // Match TriageMode sort: sort_order ascending, nulls last
-      if (a.sort_order && b.sort_order) return a.sort_order < b.sort_order ? -1 : a.sort_order > b.sort_order ? 1 : 0;
-      if (a.sort_order && !b.sort_order) return -1;
-      if (!a.sort_order && b.sort_order) return 1;
-      // Fallback: due_date ascending, nulls last
-      if (a.due_date && b.due_date) return a.due_date < b.due_date ? -1 : a.due_date > b.due_date ? 1 : 0;
-      if (a.due_date && !b.due_date) return -1;
-      if (!a.due_date && b.due_date) return 1;
-      return 0;
-    });
+  const nowTasks = useMemo(
+    () => sortTasks(tasks.filter((t) => t.category === "now" && t.status !== "done")),
+    [tasks]
+  );
 
   const [selectedTaskIndex, setSelectedTaskIndex] = useState(0);
   const [steps, setSteps] = useState<string[] | null>(null);

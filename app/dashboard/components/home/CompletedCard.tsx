@@ -7,17 +7,7 @@ interface Props {
   delay?: number;
 }
 
-const SOURCE_LABEL: Record<string, string> = {
-  voice: "voice",
-  file: "file",
-  typed: "typed",
-};
-
-const SOURCE_COLOR: Record<string, string> = {
-  voice: "#1D9E75",
-  file: "#EF9F27",
-  typed: "#A0A8B8",
-};
+import { SOURCE_STYLE } from "@/lib/constants";
 
 export default function CompletedCard({ tasks, delay = 0 }: Props) {
   return (
@@ -65,11 +55,11 @@ export default function CompletedCard({ tasks, delay = 0 }: Props) {
               <span
                 className="font-sans text-[9px] font-medium px-1.5 py-0.5 rounded-full shrink-0"
                 style={{
-                  color: SOURCE_COLOR[task.source] ?? "#A0A8B8",
-                  backgroundColor: `${SOURCE_COLOR[task.source] ?? "#A0A8B8"}12`,
+                  color: (SOURCE_STYLE[task.source] ?? SOURCE_STYLE.typed).color,
+                  backgroundColor: `${(SOURCE_STYLE[task.source] ?? SOURCE_STYLE.typed).color}12`,
                 }}
               >
-                {SOURCE_LABEL[task.source] ?? "typed"}
+                {(SOURCE_STYLE[task.source] ?? SOURCE_STYLE.typed).label}
               </span>
             </div>
           ))}

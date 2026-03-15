@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useRef, useMemo, useEffect } from "react";
+import { useState, useRef, useMemo, useEffect, useCallback } from "react";
+import { createPortal } from "react-dom";
 import type { Task } from "../page";
 import AdvisorMic from "./shared/AdvisorMic";
 import {
@@ -17,6 +18,8 @@ import type { DragStartEvent, DragOverEvent, DragEndEvent } from "@dnd-kit/core"
 import { SortableContext, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { generateKeyBetween } from "fractional-indexing";
+import { sortTasks } from "@/lib/sort-tasks";
+import { SOURCE_STYLE } from "@/lib/constants";
 
 interface Props {
   tasks: Task[];
@@ -24,32 +27,6 @@ interface Props {
   addTasks: (tasks: Task[]) => Promise<void>;
   deleteTask: (id: string) => void;
   onOpenLetter: () => void;
-}
-
-const SOURCE_STYLE: Record<string, { label: string; color: string }> = {
-  voice: { label: "voice", color: "#5DCAA5" },
-  file:  { label: "file",  color: "#EF9F27" },
-  typed: { label: "typed", color: "#A0A8B8" },
-};
-
-// ── Sort utilities ────────────────────────────────────────────────────
-function parseDateForSort(dateStr: string | null | undefined): number {
-  if (!dateStr) return Infinity;
-  const d = new Date(dateStr);
-  return isNaN(d.getTime()) ? Infinity : d.getTime();
-}
-
-function sortTasks<T extends { sort_order?: string | null; due_date?: string | null }>(tasks: T[]): T[] {
-  return [...tasks].sort((a, b) => {
-    // Primary: sort_order ascending, nulls last
-    if (a.sort_order && b.sort_order) {
-      return a.sort_order < b.sort_order ? -1 : a.sort_order > b.sort_order ? 1 : 0;
-    }
-    if (a.sort_order && !b.sort_order) return -1;
-    if (!a.sort_order && b.sort_order) return 1;
-    // Secondary: due_date ascending, nulls last
-    return parseDateForSort(a.due_date) - parseDateForSort(b.due_date);
-  });
 }
 
 // ── Deadline badge ────────────────────────────────────────────────────
@@ -140,7 +117,7 @@ function DatePickerPopup({ value, onChange, onClose, anchorRef }: {
 
   if (!pos) return null;
 
-  return (
+  return createPortal(
     <>
       {/* Invisible backdrop to catch clicks outside */}
       <div className="fixed inset-0 z-[9998]" onClick={onClose} />
@@ -232,7 +209,8 @@ function DatePickerPopup({ value, onChange, onClose, anchorRef }: {
           </button>
         </div>
       </div>
-    </>
+    </>,
+    document.body
   );
 }
 
@@ -580,28 +558,29 @@ export default function TriageMode({ tasks, updateTask, addTasks, deleteTask, on
     useSensor(TouchSensor, { activationConstraint: { delay: 150, tolerance: 5 } }),
   );
 
-  const visibleTasks = tasks.filter((t) => t.status !== "done");
+  const visibleTasks = useMemo(() => tasks.filter((t) => t.status !== "done"), [tasks]);
 
   // ── Derived task lists (must be above early return so useEffect always runs) ──
   const DO_NOW_CAP = 3;
 
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const twoDaysOut = new Date(today);
-  twoDaysOut.setDate(twoDaysOut.getDate() + 2);
-
   // Treat old "drop" category tasks as "later" since we removed the Drop column
-  const nowTasks   = sortTasks(visibleTasks.filter((t) => t.category === "now"));
-  const laterTasks = sortTasks(visibleTasks.filter((t) => t.category === "later" || t.category === "drop"));
+  const nowTasks   = useMemo(() => sortTasks(visibleTasks.filter((t) => t.category === "now")), [visibleTasks]);
+  const laterTasks = useMemo(() => sortTasks(visibleTasks.filter((t) => t.category === "later" || t.category === "drop")), [visibleTasks]);
 
   // Upcoming: copies of tasks (from any column) due within 2 days
-  const upcomingTasks = sortTasks(
-    visibleTasks.filter((t) => {
-      if (!t.due_date) return false;
-      const d = new Date(t.due_date + "T00:00:00");
-      return d.getTime() >= today.getTime() && d.getTime() < twoDaysOut.getTime();
-    })
-  );
+  const upcomingTasks = useMemo(() => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const twoDaysOut = new Date(today);
+    twoDaysOut.setDate(twoDaysOut.getDate() + 2);
+    return sortTasks(
+      visibleTasks.filter((t) => {
+        if (!t.due_date) return false;
+        const d = new Date(t.due_date + "T00:00:00");
+        return d.getTime() >= today.getTime() && d.getTime() < twoDaysOut.getTime();
+      })
+    );
+  }, [visibleTasks]);
 
   // ── Auto-balance: hard-cap "Do now" at DO_NOW_CAP ────────────────
   // Over cap  → demote the bottom "now" task(s) to the top of "later"
@@ -634,6 +613,8 @@ export default function TriageMode({ tasks, updateTask, addTasks, deleteTask, on
       </div>
     );
   }
+
+  const handleDateChange = useCallback((id: string, iso: string) => updateTask(id, { due_date: iso }), [updateTask]);
 
   const markDone = (id: string) => {
     setExitingIds((prev) => new Set(prev).add(id));
@@ -675,16 +656,6 @@ export default function TriageMode({ tasks, updateTask, addTasks, deleteTask, on
       updateTask(taskId, updates);
     }
   };
-
-  // ── Empty state (after all hooks) ─────────────────────────────────
-  if (visibleTasks.length === 0) {
-    return (
-      <div className="flex flex-col items-center justify-center h-full min-h-[60vh]">
-        <p className="font-serif italic text-3xl text-[#5DCAA5]">You&apos;ve cleared everything.</p>
-        <p className="mt-2 font-sans text-sm text-[#A0A8B8]/40">Rare.</p>
-      </div>
-    );
-  }
 
   // ── Drag handlers ─────────────────────────────────────────────────
   const handleDragStart = (event: DragStartEvent) => {
@@ -876,7 +847,7 @@ export default function TriageMode({ tasks, updateTask, addTasks, deleteTask, on
             isDragActive={activeTask != null}
             highlightedIds={highlightedIds}
             onMarkDone={markDone}
-            onDateChange={(id, iso) => updateTask(id, { due_date: iso })}
+            onDateChange={handleDateChange}
             calendarId={calendarId}
             setCalendarId={setCalendarId}
             dateButtonRefs={dateButtonRefs}
@@ -902,7 +873,7 @@ export default function TriageMode({ tasks, updateTask, addTasks, deleteTask, on
               isDragActive={activeTask != null}
               highlightedIds={highlightedIds}
               onMarkDone={markDone}
-              onDateChange={(id, iso) => updateTask(id, { due_date: iso })}
+              onDateChange={handleDateChange}
               calendarId={calendarId}
               setCalendarId={setCalendarId}
               dateButtonRefs={dateButtonRefs}

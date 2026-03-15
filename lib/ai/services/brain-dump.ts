@@ -1,9 +1,10 @@
-import OpenAI from "openai";
+import type OpenAI from "openai";
+import openai from "@/lib/openai";
 import { AI_CONFIG } from "../config";
 import { buildBrainDumpPrompt } from "../prompts/brain-dump";
 import { BrainDumpRequest, BrainDumpResponse } from "../types";
 
-const client = new OpenAI({ apiKey: AI_CONFIG.apiKey });
+const client = openai;
 
 export async function processBrainDump(
   request: BrainDumpRequest,

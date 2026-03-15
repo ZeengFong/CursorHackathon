@@ -65,3 +65,9 @@ home-battery-v2.png
 home-3layer.png
 docs/superpowers/specs/2026-03-15-home-page-design.md
 battery-red-preview.png
+docs.md
+
+# electron app
+macos-app/standalone/
+macos-app/dist/
+macos-app/node_modules/

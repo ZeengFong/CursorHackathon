@@ -35,20 +35,18 @@ export default function ResetMode() {
     setQuoteLoading(true);
     setQuoteError(false);
     try {
+      const offset = Math.floor(Math.random() * 1664);
       const { data, error } = await supabase
         .from("Quotes")
         .select("Quote, Author")
         .limit(1)
-        .order("Quote", { ascending: false })          // needed so .limit applies server-side
-        .range(Math.floor(Math.random() * 1664), Math.floor(Math.random() * 1664)); // random offset
+        .order("Quote", { ascending: false })
+        .range(offset, offset);
 
-      // fallback: pick via raw rpc if range trick returns empty
       let row = data?.[0];
       if (!row || error) {
-        // simpler fallback: just grab any one
-        const fb = await supabase.from("Quotes").select("Quote, Author").limit(100);
-        const arr = fb.data ?? [];
-        row = arr[Math.floor(Math.random() * arr.length)];
+        const fb = await supabase.from("Quotes").select("Quote, Author").limit(1).range(0, 0);
+        row = fb.data?.[0];
       }
 
       if (row?.Quote) {

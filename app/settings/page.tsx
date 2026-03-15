@@ -307,7 +307,7 @@ export default function SettingsPage() {
       try { sessionStorage.clear(); } catch {}
       clearCachedTasks();
       [
-        "BrainDump_tasks", "BrainDump_tasks",
+        "BrainDump_tasks", "clearhead_display_name",
         "BrainDump_voice_enabled", "BrainDump_display_name",
         "BrainDump_panic_url", "BrainDump_voice_name",
         "BrainDump_autodate", "BrainDump_show_past",

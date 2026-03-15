@@ -11,11 +11,7 @@ interface Props {
 
 const DAY_NAMES = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
 
-const CATEGORY_COLOR: Record<string, string> = {
-  now: "#1D9E75",
-  later: "#EF9F27",
-  drop: "#A0A8B8",
-};
+import { CATEGORY_COLOR } from "@/lib/constants";
 
 function toISO(d: Date): string {
   return d.toISOString().split("T")[0];

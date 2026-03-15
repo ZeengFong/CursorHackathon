@@ -1,9 +1,10 @@
-import OpenAI from "openai";
+import type OpenAI from "openai";
+import openai from "@/lib/openai";
 import { AI_CONFIG } from "../config";
 import { buildAdvisorPrompt } from "../prompts/advisor";
 import { AdvisorRequest, AdvisorResponse } from "../types";
 
-const client = new OpenAI({ apiKey: AI_CONFIG.apiKey });
+const client = openai;
 
 export async function getAdvisorResponse(
   request: AdvisorRequest,
