@@ -6,6 +6,7 @@ import type { Task } from "../page";
 interface Props {
   tasks: Task[];
   updateTask: (id: string, updates: Partial<Task>) => void;
+  onOpenLetter: () => void;
 }
 
 const CYCLE: Record<Task["category"], Task["category"]> = {
@@ -61,7 +62,7 @@ function DeadlineBadge({ due_date, allowOverdue }: { due_date: string; allowOver
 }
 
 // ── Main component ──────────────────────────────────────────────────
-export default function TriageMode({ tasks, updateTask }: Props) {
+export default function TriageMode({ tasks, updateTask, onOpenLetter }: Props) {
   const [hoveredId, setHoveredId]           = useState<string | null>(null);
   const [exitingIds, setExitingIds]         = useState<Set<string>>(new Set());
   const [calendarId, setCalendarId]         = useState<string | null>(null);
@@ -265,6 +266,37 @@ export default function TriageMode({ tasks, updateTask }: Props) {
         </div>
 
       </div>
+
+      {tasks.length > 0 && (
+        <div className="mt-8 flex justify-center">
+          <button
+            onClick={onOpenLetter}
+            className="inline-flex items-center gap-2 font-sans text-sm transition-colors duration-150"
+            style={{ color: '#5DCAA5' }}
+            onMouseEnter={e =>
+              ((e.currentTarget as HTMLElement).style.color = '#7DDBB8')
+            }
+            onMouseLeave={e =>
+              ((e.currentTarget as HTMLElement).style.color = '#5DCAA5')
+            }
+          >
+            <svg
+              viewBox="0 0 20 20"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth={1.4}
+              className="w-4 h-4"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M2.5 5.5A1.5 1.5 0 0 1 4 4h12a1.5 1.5 0 0 1 1.5 1.5v9A1.5 1.5 0 0 1 16 16H4a1.5 1.5 0 0 1-1.5-1.5v-9ZM2.5 7l7.5 5 7.5-5"
+              />
+            </svg>
+            Read your mind letter
+          </button>
+        </div>
+      )}
     </div>
   );
 }
