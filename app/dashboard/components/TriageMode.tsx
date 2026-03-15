@@ -7,6 +7,8 @@ import { MicIcon } from "@/app/components/ui/mic";
 interface Props {
   tasks: Task[];
   updateTask: (id: string, updates: Partial<Task>) => void;
+  addTasks: (tasks: Task[]) => Promise<void>;
+  deleteTask: (id: string) => void;
   onOpenLetter: () => void;
 }
 
@@ -63,7 +65,7 @@ function DeadlineBadge({ due_date, allowOverdue }: { due_date: string; allowOver
 }
 
 // ── Main component ──────────────────────────────────────────────────
-export default function TriageMode({ tasks, updateTask, onOpenLetter }: Props) {
+export default function TriageMode({ tasks, updateTask, addTasks, deleteTask, onOpenLetter }: Props) {
   const [hoveredId, setHoveredId]           = useState<string | null>(null);
   const [exitingIds, setExitingIds]         = useState<Set<string>>(new Set());
   const [calendarId, setCalendarId]         = useState<string | null>(null);
@@ -199,7 +201,13 @@ export default function TriageMode({ tasks, updateTask, onOpenLetter }: Props) {
         </div>
 
         {/* Advisor mic */}
-        <AdvisorMicWrapper tasks={tasks} setHighlightedIds={setHighlightedIds} />
+        <AdvisorMicWrapper
+          tasks={tasks}
+          setHighlightedIds={setHighlightedIds}
+          updateTask={updateTask}
+          addTasks={addTasks}
+          deleteTask={deleteTask}
+        />
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
@@ -306,9 +314,15 @@ export default function TriageMode({ tasks, updateTask, onOpenLetter }: Props) {
 function AdvisorMicWrapper({
   tasks,
   setHighlightedIds,
+  updateTask,
+  addTasks,
+  deleteTask,
 }: {
   tasks: Task[];
   setHighlightedIds: (ids: Set<string>) => void;
+  updateTask: (id: string, updates: Partial<Task>) => void;
+  addTasks: (tasks: Task[]) => Promise<void>;
+  deleteTask: (id: string) => void;
 }) {
   const [isRecording, setIsRecording] = useState(false);
   const [isLoading, setIsLoading]     = useState(false);
@@ -364,6 +378,40 @@ function AdvisorMicWrapper({
       ]);
 
       setSummary(advisor.displaySummary ?? null);
+
+      // ── Execute actions if AI is confident ──────────────────────────
+      const actions = advisor.actions ?? [];
+      if (!advisor.needsConfirmation && actions.length > 0) {
+        console.log("[advisor] executing actions →", JSON.stringify(actions));
+        const tasksToAdd: Task[] = [];
+
+        for (const action of actions) {
+          if (action.type === "add") {
+            tasksToAdd.push({
+              id: crypto.randomUUID(),
+              text: action.taskName,
+              category: "later",
+              status: "pending",
+              source: "voice",
+              due_date: action.dueDate ?? undefined,
+            });
+          } else if (action.type === "complete") {
+            const match = tasks.find((t) => t.text.toLowerCase() === action.taskName.toLowerCase() && t.status !== "done");
+            if (match) updateTask(match.id, { status: "done" });
+            else console.warn("[advisor] no match for complete:", action.taskName);
+          } else if (action.type === "reschedule") {
+            const match = tasks.find((t) => t.text.toLowerCase() === action.taskName.toLowerCase() && t.status !== "done");
+            if (match && action.dueDate) updateTask(match.id, { due_date: action.dueDate });
+            else console.warn("[advisor] no match for reschedule:", action.taskName);
+          } else if (action.type === "delete") {
+            const match = tasks.find((t) => t.text.toLowerCase() === action.taskName.toLowerCase());
+            if (match) deleteTask(match.id);
+            else console.warn("[advisor] no match for delete:", action.taskName);
+          }
+        }
+
+        if (tasksToAdd.length > 0) await addTasks(tasksToAdd);
+      }
 
       const names = new Set<string>(advisor.referencedTaskNames ?? []);
       const ids = new Set(tasks.filter((t) => names.has(t.text)).map((t) => t.id));
