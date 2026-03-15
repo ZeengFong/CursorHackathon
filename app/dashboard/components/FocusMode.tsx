@@ -10,6 +10,9 @@ interface Props {
 const RADIUS = 70;
 const CIRCUMFERENCE = 2 * Math.PI * RADIUS;
 
+// Cache steps per task ID so re-mounting the component doesn't re-fetch
+const stepsCache = new Map<string, string[]>();
+
 function SkeletonSteps() {
   return (
     <div className="flex flex-col gap-1.5">
@@ -60,6 +63,13 @@ export default function FocusMode({ tasks }: Props) {
   useEffect(() => {
     if (!activeTask) return;
     setChecked(new Set());
+
+    const cached = stepsCache.get(activeTask.id);
+    if (cached) {
+      setSteps(cached);
+      return;
+    }
+
     setSteps(null);
     fetch("/api/focus", {
       method: "POST",
@@ -68,13 +78,17 @@ export default function FocusMode({ tasks }: Props) {
     })
       .then((r) => r.json())
       .then((data) => {
-        setSteps(
+        const result =
           Array.isArray(data.steps) && data.steps.length > 0
             ? data.steps
-            : [],
-        );
+            : [];
+        stepsCache.set(activeTask.id, result);
+        setSteps(result);
       })
-      .catch(() => setSteps([]));
+      .catch(() => {
+        stepsCache.set(activeTask.id, []);
+        setSteps([]);
+      });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTask?.id]);
 
