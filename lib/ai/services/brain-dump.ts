@@ -20,18 +20,10 @@ export async function processBrainDump(
       parts.push({ type: "text", text: request.rawText });
     }
     for (const file of files) {
-      if (!file.data) continue;
-      if (file.type.startsWith("image/")) {
-        parts.push({
-          type: "image_url",
-          image_url: { url: file.data, detail: "auto" },
-        });
-      } else {
-        parts.push({
-          type: "file",
-          file: { filename: file.name, file_data: file.data },
-        } as OpenAI.Chat.ChatCompletionContentPart);
-      }
+      parts.push({
+        type: "file",
+        file: { file_id: file.file_id },
+      } as OpenAI.Chat.ChatCompletionContentPart);
     }
     userContent = parts;
   } else {
@@ -53,6 +45,11 @@ export async function processBrainDump(
     max_tokens: AI_CONFIG.maxTokensBrainDump,
     response_format: { type: "json_object" },
   });
+
+  // Clean up uploaded files
+  for (const file of files) {
+    client.files.delete(file.file_id).catch(() => {});
+  }
 
   const raw = completion.choices[0].message.content;
   if (!raw) throw new Error("Empty response from OpenAI");

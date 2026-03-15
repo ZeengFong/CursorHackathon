@@ -6,14 +6,14 @@ import { useRef, useState, useCallback } from "react";
 export interface FilePayload {
   name: string;
   type: string;   // MIME type
-  data: string;   // base64 data-URL
+  file_id: string; // OpenAI file ID
 }
 
 interface FileItem {
   id: string;
   name: string;
   type: string;
-  data: string;
+  file: File;      // original File for upload
   size: number;
 }
 
@@ -146,25 +146,17 @@ export default function DumpInput({
   };
 
   // ── File reading ──────────────────────────────────────────────────
-  const readFile = (file: File): Promise<FileItem> =>
-    new Promise((resolve, reject) => {
-      const id = crypto.randomUUID();
-      const reader = new FileReader();
-      reader.onload = (e) =>
-        resolve({
-          id,
-          name: file.name,
-          type: file.type || "application/octet-stream",
-          data: (e.target?.result as string) ?? "",
-          size: file.size,
-        });
-      reader.onerror = () => reject(new Error(`Failed to read ${file.name}`));
-      reader.readAsDataURL(file);
-    });
+  const toFileItem = (file: File): FileItem => ({
+    id: crypto.randomUUID(),
+    name: file.name,
+    type: file.type || "application/octet-stream",
+    file,
+    size: file.size,
+  });
 
   const MAX_FILE_SIZE = 20 * 1024 * 1024; // 20 MB
 
-  const addFiles = async (incoming: File[]) => {
+  const addFiles = (incoming: File[]) => {
     const slots = 3 - files.length;
     if (slots <= 0) return;
     const valid = incoming.filter((f) => {
@@ -174,7 +166,7 @@ export default function DumpInput({
       }
       return true;
     });
-    const items = await Promise.all(valid.slice(0, slots).map(readFile));
+    const items = valid.slice(0, slots).map(toFileItem);
     setFiles((prev) => [...prev, ...items]);
   };
 
@@ -191,12 +183,22 @@ export default function DumpInput({
   // ── Submit ────────────────────────────────────────────────────────
   const canSubmit = (text.trim().length > 0 || files.length > 0) && !loading;
 
+  const uploadFile = async (file: File): Promise<FilePayload> => {
+    const form = new FormData();
+    form.append("file", file);
+    const res = await fetch("/api/upload", { method: "POST", body: form });
+    if (!res.ok) throw new Error(`Upload failed for ${file.name}`);
+    return res.json();
+  };
+
   const handleSubmit = async () => {
     if (!canSubmit) return;
     setLoading(true);
     setError(null);
     try {
-      await onSubmit(text, files.map((f) => ({ name: f.name, type: f.type, data: f.data })));
+      // Upload files to OpenAI via our upload endpoint
+      const payloads = await Promise.all(files.map((f) => uploadFile(f.file)));
+      await onSubmit(text, payloads);
       setText("");
       setFiles([]);
       if (textareaRef.current) textareaRef.current.style.height = "";

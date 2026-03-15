@@ -3,11 +3,13 @@ import openai from "@/lib/openai";
 import { TRIAGE_SYSTEM_PROMPT } from "@/lib/prompts";
 import type OpenAI from "openai";
 
+export const maxDuration = 60;
+
 export async function POST(request: Request) {
   // Accept both new { text, files } shape and legacy { dump } shape
   const body = await request.json();
   const content: string = body.text ?? body.dump ?? "";
-  const files: { name: string; type: string; data: string }[] = body.files ?? [];
+  const files: { name: string; type: string; file_id: string }[] = body.files ?? [];
 
   const textContent = content.trim();
   if (!textContent && files.length === 0) {
@@ -23,24 +25,10 @@ export async function POST(request: Request) {
     }
 
     for (const file of files) {
-      if (!file.data) continue;
-
-      if (file.type.startsWith("image/")) {
-        // Images use image_url content part
-        parts.push({
-          type: "image_url",
-          image_url: { url: file.data, detail: "auto" },
-        });
-      } else {
-        // PDFs and other documents use file content part
-        parts.push({
-          type: "file",
-          file: {
-            filename: file.name,
-            file_data: file.data,
-          },
-        } as OpenAI.Chat.ChatCompletionContentPart);
-      }
+      parts.push({
+        type: "file",
+        file: { file_id: file.file_id },
+      } as OpenAI.Chat.ChatCompletionContentPart);
     }
 
     // If we only have text (no files), keep it simple
@@ -58,6 +46,11 @@ export async function POST(request: Request) {
       temperature: 0.3,
       response_format: { type: "json_object" },
     });
+
+    // Clean up uploaded files
+    for (const file of files) {
+      openai.files.delete(file.file_id).catch(() => {});
+    }
 
     const raw = completion.choices[0]?.message?.content ?? "{}";
     const parsed = JSON.parse(raw) as { tasks?: unknown[] };
@@ -80,6 +73,10 @@ export async function POST(request: Request) {
     return NextResponse.json({ tasks, text: content });
   } catch (err) {
     console.error("[/api/dump] OpenAI error:", err);
+    // Clean up files on error too
+    for (const file of files) {
+      openai.files.delete(file.file_id).catch(() => {});
+    }
     return NextResponse.json({ tasks: [], error: "Failed to process dump. Please try again." });
   }
 }

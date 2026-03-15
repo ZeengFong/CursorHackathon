@@ -13,7 +13,7 @@ export interface TaskRemoval {
 export interface BrainDumpRequest {
   rawText: string;
   conversationHistory: { role: "user" | "assistant"; content: string }[];
-  files?: { name: string; type: string; data: string }[];
+  files?: { name: string; type: string; file_id: string }[];
 }
 
 export interface BrainDumpResponse {
