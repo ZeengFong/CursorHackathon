@@ -47,8 +47,8 @@ export default function FocusMode({ tasks }: Props) {
       if (!a.due_date && b.due_date) return 1;
       return 0;
     });
-  const activeTask = nowTasks[0] ?? null;
 
+  const [selectedTaskIndex, setSelectedTaskIndex] = useState(0);
   const [steps, setSteps] = useState<string[] | null>(null);
   const [checked, setChecked] = useState<Set<number>>(new Set());
 
@@ -60,6 +60,9 @@ export default function FocusMode({ tasks }: Props) {
   const [isBreak, setIsBreak] = useState(false);
   const [breakTimeLeft, setBreakTimeLeft] = useState(5 * 60);
   const [sessionCount, setSessionCount] = useState(0);
+
+  // Derived active task — falls back to first task if index is out of range
+  const activeTask = nowTasks[selectedTaskIndex] ?? nowTasks[0] ?? null;
 
   useEffect(() => {
     if (!activeTask) return;
@@ -145,6 +148,7 @@ export default function FocusMode({ tasks }: Props) {
     setBreakTimeLeft(5 * 60);
     setSessionCount(0);
     setTimeLeft(selectedMinutes * 60);
+    setSelectedTaskIndex(0);
   };
 
   const toggleStep = (i: number) =>
@@ -199,9 +203,81 @@ export default function FocusMode({ tasks }: Props) {
       {/* Pomodoro */}
       <div className="flex flex-col items-center mb-10" style={{ animation: "fadeSlideUp 600ms ease-out 100ms both" }}>
 
-        {/* Duration picker — only before timer starts */}
+        {/* Pre-timer controls — hidden once timer starts */}
         {!timerStarted && (
-          <div className="flex flex-col items-center gap-3 mb-6">
+          <div className="flex flex-col items-center gap-3 mb-6 w-full">
+
+            {/* Task selector — only when there are multiple now tasks */}
+            {nowTasks.length > 1 && (
+              <div className="flex flex-col items-center gap-3 mb-5 w-full">
+                <p className="font-sans text-[10px] uppercase tracking-widest text-muted/40">
+                  What are you focusing on?
+                </p>
+                <div className="flex flex-col gap-2 w-full max-w-sm">
+                  {nowTasks.map((task, index) => {
+                    const taskText = task.text || "Untitled task";
+                    const isSelected = selectedTaskIndex === index;
+                    return (
+                      <button
+                        key={task.id}
+                        onClick={() => {
+                          setSelectedTaskIndex(index);
+                          setSteps(null);
+                          setChecked(new Set());
+                        }}
+                        className={`w-full text-left px-4 py-3 rounded-xl border transition-all duration-200 ${
+                          isSelected
+                            ? "bg-teal/12 border-teal/40 text-[#E8EAF0]"
+                            : "bg-transparent border-muted/10 text-muted/50 hover:border-muted/25 hover:text-muted/75"
+                        }`}
+                      >
+                        <div className="flex items-center gap-3">
+                          {/* Selection indicator */}
+                          <div
+                            className={`w-2 h-2 rounded-full shrink-0 transition-all duration-200 ${
+                              isSelected ? "bg-teal" : "bg-muted/20"
+                            }`}
+                          />
+                          {/* Task text */}
+                          <span className="font-sans text-sm leading-snug flex-1">
+                            {taskText}
+                          </span>
+                          {/* Due date badge */}
+                          {task.due_date && (() => {
+                            const due = new Date(task.due_date);
+                            const today = new Date();
+                            today.setHours(0, 0, 0, 0);
+                            const diffDays = Math.ceil(
+                              (due.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)
+                            );
+                            const label =
+                              diffDays === 0 ? "Today"
+                              : diffDays === 1 ? "Tomorrow"
+                              : diffDays < 0 ? `${Math.abs(diffDays)}d overdue`
+                              : `${diffDays}d`;
+                            const color =
+                              diffDays <= 0
+                                ? "bg-[#D85A30]/15 text-[#D85A30]"
+                                : diffDays <= 1
+                                ? "bg-[#EF9F27]/15 text-[#EF9F27]"
+                                : "bg-teal/12 text-[#5DCAA5]";
+                            return (
+                              <span
+                                className={`ml-auto shrink-0 font-sans text-[10px] font-medium px-2 py-0.5 rounded-full ${color}`}
+                              >
+                                {label}
+                              </span>
+                            );
+                          })()}
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* Duration picker */}
             <p className="font-sans text-[10px] uppercase tracking-widest text-[#A0A8B8]/40">
               Focus duration
             </p>
