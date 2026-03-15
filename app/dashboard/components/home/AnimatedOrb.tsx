@@ -159,11 +159,13 @@ export default function AnimatedOrb({ tasks, updateTask, addTasks, deleteTask, t
       }
 
       // TTS playback
-      console.log("[orb] calling TTS...");
+      // TTS — truncate to 500 chars to stay within limit
+      const ttsText = (advisor.reply || "").slice(0, 500);
+      console.log("[orb] calling TTS with", ttsText.length, "chars...");
       const ttsRes = await fetch("/api/tts", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text: advisor.reply, voiceId: "calm" }),
+        body: JSON.stringify({ text: ttsText, voiceId: "calm" }),
       });
       console.log("[orb] TTS status:", ttsRes.status);
       if (!ttsRes.ok) {
@@ -270,17 +272,23 @@ export default function AnimatedOrb({ tasks, updateTask, addTasks, deleteTask, t
           className="absolute bottom-full left-1/2 -translate-x-1/2 mb-4 w-[280px] pointer-events-none"
           style={{ animation: "fadeSlideUp 400ms ease-out" }}
         >
-          <div className="rounded-xl bg-[#13161C]/95 backdrop-blur-md border border-[#1D9E75]/15 px-4 py-3 shadow-lg shadow-black/20">
-            <p className="font-sans text-[13px] text-[#E8EAF0]/80 leading-relaxed">
+          <div className="rounded-xl bg-[#13161C]/95 backdrop-blur-md border-none px-4 py-3 shadow-lg shadow-black/20">
+            <p className="font-sans text-[13px] leading-relaxed" style={{
+              color: "rgba(232,234,240,0.85)",
+              textShadow: "0 0 8px rgba(232,234,240,0.15), 0 0 20px rgba(93,202,165,0.08)",
+            }}>
               {replyText.slice(0, typedChars)}
               {typedChars < replyText.length && (
                 <span className="inline-block w-[1.5px] h-[0.9em] bg-[#5DCAA5]/60 ml-[1px] align-middle" style={{ animation: "blink 1s step-end infinite" }} />
               )}
             </p>
           </div>
-          {/* Arrow pointing down to orb */}
-          <div className="flex justify-center">
-            <div className="w-3 h-3 bg-[#13161C]/95 border-r border-b border-[#1D9E75]/15 rotate-45 -mt-1.5" />
+          {/* Glowing carat pointing down to orb */}
+          <div className="flex justify-center -mt-1">
+            <span className="text-[18px] leading-none" style={{
+              color: "rgba(255,255,255,0.7)",
+              textShadow: "0 0 10px rgba(255,255,255,0.4), 0 0 25px rgba(93,202,165,0.3), 0 0 40px rgba(29,158,117,0.15)",
+            }}>⌄</span>
           </div>
         </div>
       )}
