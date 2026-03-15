@@ -25,7 +25,10 @@ export async function getAdvisorResponse(
     messages,
     max_tokens: AI_CONFIG.maxTokensAdvisor,
     response_format: { type: "json_object" },
-  });
+    reasoning: { effort: "minimal" },
+    text: { format: { type: "text", verbosity: "medium" } },
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  } as any);
 
   const raw = completion.choices[0].message.content;
   if (!raw) throw new Error("Empty response from OpenAI");

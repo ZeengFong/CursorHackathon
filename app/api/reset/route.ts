@@ -26,14 +26,17 @@ export async function POST(request: Request) {
     ].join("\n");
 
     const completion = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
+      model: "gpt-5-mini",
       messages: [
         { role: "system", content: RESET_SYSTEM_PROMPT },
         { role: "user", content: userMessage },
       ],
       max_tokens: 16384,
       temperature: 0.7,
-    });
+      reasoning: { effort: "medium" },
+      text: { format: { type: "text", verbosity: "low" } },
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } as any);
 
     const reflection =
       completion.choices[0]?.message?.content?.trim() || FALLBACK;

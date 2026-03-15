@@ -1,4 +1,5 @@
 import openai from "@/lib/openai";
+import type OpenAI from "openai";
 import { LETTER_SYSTEM_PROMPT } from "@/lib/prompts";
 import { NextRequest } from "next/server";
 
@@ -23,7 +24,7 @@ export async function POST(req: NextRequest) {
     const userMsg = `My brain dump has been triaged into these tasks:\n\n${lines}`;
 
     const stream = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
+      model: "gpt-5-mini",
       stream: true,
       max_tokens: 16384,
       temperature: 0.75,
@@ -31,7 +32,11 @@ export async function POST(req: NextRequest) {
         { role: "system", content: LETTER_SYSTEM_PROMPT },
         { role: "user", content: userMsg },
       ],
-    });
+      reasoning: { effort: "medium" },
+      text: { format: { type: "text", verbosity: "low" } },
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } as any) as any as AsyncIterable<OpenAI.Chat.ChatCompletionChunk>;
 
     const readable = new ReadableStream({
       async start(controller) {

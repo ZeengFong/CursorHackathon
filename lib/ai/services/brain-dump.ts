@@ -7,7 +7,7 @@ const client = new OpenAI({ apiKey: AI_CONFIG.apiKey });
 
 export async function processBrainDump(
   request: BrainDumpRequest,
-  currentTime: string = new Date().toISOString()
+  currentTime: string = new Date().toISOString(),
 ): Promise<BrainDumpResponse> {
   const files = request.files ?? [];
   const hasFiles = files.length > 0;
@@ -40,11 +40,14 @@ export async function processBrainDump(
   ];
 
   const completion = await client.chat.completions.create({
-    model: hasFiles ? "gpt-4o" : AI_CONFIG.openAiModel,
+    model: hasFiles ? "gpt-5-mini" : AI_CONFIG.openAiModel,
     messages,
     max_tokens: AI_CONFIG.maxTokensBrainDump,
     response_format: { type: "json_object" },
-  });
+    reasoning: { effort: "medium" },
+    text: { format: { type: "text", verbosity: "low" } },
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  } as any);
 
   // Clean up uploaded files
   for (const file of files) {
