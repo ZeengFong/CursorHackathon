@@ -16,6 +16,15 @@ function CalendarIcon() {
 
 const MODE_ITEMS: { id: AppMode; label: string; icon: React.ReactNode }[] = [
   {
+    id: "home",
+    label: "Home",
+    icon: (
+      <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth={1.5} className="w-4 h-4 shrink-0">
+        <path strokeLinecap="round" strokeLinejoin="round" d="M3 10l7-7 7 7M5 8.5V16a1 1 0 001 1h3v-4h2v4h3a1 1 0 001-1V8.5" />
+      </svg>
+    ),
+  },
+  {
     id: "dump",
     label: "Dump",
     icon: (

@@ -9,13 +9,14 @@ import ResetMode from "./components/ResetMode";
 import MascotOrb from "./components/MascotOrb";
 import CalendarMode from "./components/CalendarMode";
 import MindLetter from "./components/MindLetter";
+import HomeMode from "./components/HomeMode";
 
 import { supabase } from "@/lib/supabase"
 import { generateKeyBetween } from "fractional-indexing";
 import { getCachedTasks, setCachedTasks } from "@/lib/task-cache"
 
 // ── Types ──────────────────────────────────────────────────────────────
-export type AppMode = "dump" | "triage" | "focus" | "reset" | "calendar";
+export type AppMode = "home" | "dump" | "triage" | "focus" | "reset" | "calendar";
 export type Category = "now" | "later" | "drop";
 
 export interface Task {
@@ -46,6 +47,14 @@ function migrateTask(raw: Record<string, unknown>): Task {
 
 // ── Mobile nav items ───────────────────────────────────────────────────
 const MODE_NAV: { id: AppMode; label: string; icon: React.ReactNode }[] = [
+  {
+    id: "home", label: "Home",
+    icon: (
+      <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth={1.5} className="w-5 h-5">
+        <path strokeLinecap="round" strokeLinejoin="round" d="M3 10l7-7 7 7M5 8.5V16a1 1 0 001 1h3v-4h2v4h3a1 1 0 001-1V8.5" />
+      </svg>
+    ),
+  },
   {
     id: "dump", label: "Dump",
     icon: (
@@ -101,7 +110,7 @@ function speakText(text: string) {
 
 // ── Component ──────────────────────────────────────────────────────────
 export default function Dashboard() {
-  const [mode, setMode]                 = useState<AppMode>("triage");
+  const [mode, setMode]                 = useState<AppMode>("home");
   const [tasks, setTasks]               = useState<Task[]>([]);
   const [mounted, setMounted]           = useState(false);
   const [voiceEnabled, setVoiceEnabled] = useState(false);
@@ -322,6 +331,15 @@ export default function Dashboard() {
             Your dump was saved — welcome back
           </div>
         )}
+        {mode === "home" && (
+          <HomeMode
+            tasks={tasks}
+            userName={userName}
+            updateTask={updateTask}
+            addTasks={addTasks}
+            deleteTask={deleteTask}
+          />
+        )}
         {mode === "triage" && (
           <TriageMode tasks={tasks} updateTask={updateTask} addTasks={addTasks} deleteTask={deleteTask} onOpenLetter={() => setShowLetter(true)} />
         )}
@@ -337,12 +355,14 @@ export default function Dashboard() {
         )}
       </main>
 
-      {/* Mascot Orb */}
-      <MascotOrb
-        nextActionText={visibleNextActionText}
-        onDismiss={() => setDismissedText(nextActionText)}
-        speak={speak}
-      />
+      {/* Mascot Orb — hidden on home (AdvisorMic replaces it) */}
+      {mode !== "home" && (
+        <MascotOrb
+          nextActionText={visibleNextActionText}
+          onDismiss={() => setDismissedText(nextActionText)}
+          speak={speak}
+        />
+      )}
 
       {showLetter && (
         <MindLetter
