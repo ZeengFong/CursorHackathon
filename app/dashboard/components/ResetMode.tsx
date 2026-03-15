@@ -15,11 +15,15 @@ interface Props {
 }
 
 export default function ResetMode({ speak, voiceEnabled }: Props) {
-  const [phaseIndex, setPhaseIndex]   = useState(0);
-  const [answers, setAnswers]         = useState({ q1: "", q2: "", q3: 0 });
-  const [saved, setSaved]             = useState(false);
-  const [reflection, setReflection]   = useState<string | null>(null);
+  void speak;
+  void voiceEnabled;
+
+  const [phaseIndex, setPhaseIndex] = useState(0);
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const [quote, setQuote] = useState<{ content: string; author: string } | null>(null);
+  const [quoteLoading, setQuoteLoading] = useState(true);
+  const [quoteError, setQuoteError] = useState(false);
 
   useEffect(() => {
     const advance = (index: number) => {
@@ -33,38 +37,32 @@ export default function ResetMode({ speak, voiceEnabled }: Props) {
     return () => { if (timeoutRef.current) clearTimeout(timeoutRef.current); };
   }, []);
 
-  const handleSave = () => {
+  const fetchQuote = async () => {
+    setQuoteLoading(true);
+    setQuoteError(false);
     try {
-      sessionStorage.setItem(
-        "BrainDump_checkins",
-        JSON.stringify({ ...answers, ts: Date.now() })
+      const res = await fetch(
+        'https://api.realinspire.live/v1/quotes/random?minLength=60&maxLength=140',
+        { cache: 'no-store' }
       );
-    } catch {}
-    setSaved(true);
-    if (voiceEnabled) speak("Good. Now back to it.");
-
-    // Fire and forget — don't block the UX
-    const fetchReflection = async () => {
-      try {
-        const controller = new AbortController();
-        const timeout = setTimeout(() => controller.abort(), 3000);
-        const res = await fetch("/api/reset", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ q1: answers.q1, q2: answers.q2, q3: answers.q3, ts: Date.now() }),
-          signal: controller.signal,
-        });
-        clearTimeout(timeout);
-        if (res.ok) {
-          const data = await res.json();
-          if (data.reflection) setReflection(data.reflection);
-        }
-      } catch {
-        // Timeout or network error — show nothing, don't disrupt the UX
+      if (!res.ok) throw new Error('Failed');
+      const data = await res.json();
+      const q = Array.isArray(data) ? data[0] : data;
+      if (q?.content && q?.author) {
+        setQuote({ content: q.content, author: q.author });
+      } else {
+        throw new Error('Invalid shape');
       }
-    };
-    fetchReflection();
+    } catch {
+      setQuoteError(true);
+    } finally {
+      setQuoteLoading(false);
+    }
   };
+
+  useEffect(() => {
+    fetchQuote();
+  }, []); // mount only
 
   const phase = PHASES[phaseIndex];
 
@@ -73,7 +71,7 @@ export default function ResetMode({ speak, voiceEnabled }: Props) {
       <div className="mb-10">
         <h2 className="font-serif text-2xl text-[#E8EAF0]">Reset</h2>
         <p className="mt-1 font-sans text-sm text-[#A0A8B8]/50">
-          Breathe first. Three questions. Then back.
+          Breathe. Then read.
         </p>
       </div>
 
@@ -103,76 +101,76 @@ export default function ResetMode({ speak, voiceEnabled }: Props) {
         <p className="mt-1 font-sans text-[11px] text-[#A0A8B8]/25 tabular-nums">{phase.seconds}s</p>
       </div>
 
-      {/* Check-in */}
-      <div className="flex flex-col gap-5">
-        <div>
-          <label className="block font-sans text-sm text-[#A0A8B8] mb-2">
-            What&apos;s the ONE thing that would make today feel complete?
-          </label>
-          <textarea
-            value={answers.q1}
-            onChange={(e) => setAnswers((a) => ({ ...a, q1: e.target.value }))}
-            rows={2}
-            placeholder="If I only do one thing..."
-            className="w-full resize-none rounded-lg bg-[#13161C] border border-[#1D9E75]/15 focus:border-[#1D9E75]/40 text-[#E8EAF0] placeholder-[#A0A8B8]/25 font-sans text-sm px-4 py-3 outline-none transition-[border-color] duration-200"
-          />
-        </div>
+      {/* Daily quote */}
+      <div className="mt-10 flex flex-col items-center gap-4">
 
-        <div>
-          <label className="block font-sans text-sm text-[#A0A8B8] mb-2">
-            What can you let go of right now?
-          </label>
-          <textarea
-            value={answers.q2}
-            onChange={(e) => setAnswers((a) => ({ ...a, q2: e.target.value }))}
-            rows={2}
-            placeholder="It's okay to release..."
-            className="w-full resize-none rounded-lg bg-[#13161C] border border-[#1D9E75]/15 focus:border-[#1D9E75]/40 text-[#E8EAF0] placeholder-[#A0A8B8]/25 font-sans text-sm px-4 py-3 outline-none transition-[border-color] duration-200"
-          />
-        </div>
-
-        {/* 1–5 dot selector */}
-        <div>
-          <label className="block font-sans text-sm text-[#A0A8B8] mb-3">
-            How is your body feeling right now?
-          </label>
-          <div className="flex items-center gap-3">
-            {[1, 2, 3, 4, 5].map((n) => (
-              <button
-                key={n}
-                onClick={() => setAnswers((a) => ({ ...a, q3: n }))}
-                aria-label={`${n}`}
-                className="flex flex-col items-center gap-1.5 group"
-              >
-                <div
-                  className={`w-5 h-5 rounded-full border-2 transition-all duration-150 ${
-                    answers.q3 >= n
-                      ? "border-[#1D9E75] bg-[#1D9E75]"
-                      : "border-[#A0A8B8]/20 bg-transparent group-hover:border-[#1D9E75]/40"
-                  }`}
-                />
-                <span className="font-sans text-[10px] text-[#A0A8B8]/30">{n}</span>
-              </button>
-            ))}
+        {quoteLoading && (
+          <div className="w-full max-w-sm flex flex-col items-center gap-2">
+            <div
+              className="h-4 rounded animate-pulse w-4/5"
+              style={{ background: 'rgba(29,158,117,0.08)' }}
+            />
+            <div
+              className="h-4 rounded animate-pulse w-3/5"
+              style={{ background: 'rgba(29,158,117,0.08)' }}
+            />
+            <div
+              className="h-3 rounded animate-pulse w-1/3 mt-1"
+              style={{ background: 'rgba(29,158,117,0.05)' }}
+            />
           </div>
-        </div>
+        )}
 
-        <button
-          onClick={handleSave}
-          disabled={saved}
-          className="mt-2 w-full py-3 bg-[#13161C] hover:bg-[#1D9E75]/8 border border-[#1D9E75]/20 hover:border-[#1D9E75]/35 text-[#5DCAA5] font-sans text-sm font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          {saved ? "Saved ✓" : "Done"}
-        </button>
-
-        {reflection && (
-          <p
-            className="font-serif italic text-lg text-[#5DCAA5] text-center mt-6 max-w-sm mx-auto leading-relaxed"
-            style={{ animation: "fadeIn 400ms ease-in forwards", opacity: 0 }}
-          >
-            {reflection}
+        {quoteError && !quoteLoading && (
+          <p className="font-sans text-xs text-[#A0A8B8]/30 text-center">
+            Could not load a quote right now.
           </p>
         )}
+
+        {quote && !quoteLoading && (
+          <div
+            className="w-full max-w-sm text-center animate-fade-up"
+            style={{ animationDuration: '0.6s', animationFillMode: 'both' }}
+          >
+            {/* Decorative top line */}
+            <div
+              className="w-8 h-px mx-auto mb-5"
+              style={{ background: 'rgba(29,158,117,0.25)' }}
+            />
+
+            <p className="font-serif italic text-[1.05rem] leading-[1.75] text-[#D8DAEA]">
+              &ldquo;{quote.content}&rdquo;
+            </p>
+
+            <p className="mt-3 font-sans text-[11px] text-[#A0A8B8]/45 tracking-wide">
+              — {quote.author}
+            </p>
+
+            {/* Refresh button */}
+            <button
+              onClick={fetchQuote}
+              className="mt-5 inline-flex items-center gap-1.5 font-sans text-[11px] text-[#A0A8B8]/35 hover:text-[#5DCAA5] transition-colors duration-200"
+              aria-label="Load another quote"
+            >
+              <svg
+                viewBox="0 0 16 16"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth={1.5}
+                className="w-3 h-3"
+                aria-hidden="true"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M13.5 8A5.5 5.5 0 1 1 8 2.5a5.5 5.5 0 0 1 3.89 1.61L13.5 5.5M13.5 5.5V2.5M13.5 5.5H10.5"
+                />
+              </svg>
+              another quote
+            </button>
+          </div>
+        )}
+
       </div>
     </div>
   );
