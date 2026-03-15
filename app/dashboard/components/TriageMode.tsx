@@ -428,7 +428,7 @@ function DroppableColumn({
         minHeight: 160,
       }}
     >
-      {/* Procrastination warning */}
+      {/* Drop warning */}
       {isOver && showWarning && (
         <div
           className="absolute -top-9 left-1/2 -translate-x-1/2 whitespace-nowrap font-sans text-[11px] font-semibold tracking-wide px-3 py-1.5 rounded-lg z-10"
@@ -439,7 +439,7 @@ function DroppableColumn({
             animation: "fadeSlideUp 150ms ease-out",
           }}
         >
-          Procrastination, really?
+          {id === "now" ? "Focus list is full — finish one first" : "Procrastination, really?"}
         </div>
       )}
 
@@ -603,6 +603,8 @@ export default function TriageMode({ tasks, updateTask, addTasks, deleteTask, on
   };
 
   // ── Derived task lists ────────────────────────────────────────────
+  const DO_NOW_CAP = 3;
+
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   const twoDaysOut = new Date(today);
@@ -642,6 +644,19 @@ export default function TriageMode({ tasks, updateTask, addTasks, deleteTask, on
     updateTask(taskId, updates);
   };
 
+  // ── Auto-promote: keep "Do now" filled up to DO_NOW_CAP ──────────
+  // When "Do now" drops below the cap and "Do later" has tasks, move
+  // the top "Do later" task to the bottom of "Do now".
+  useEffect(() => {
+    if (nowTasks.length < DO_NOW_CAP && laterTasks.length > 0) {
+      const topLater = laterTasks[0];
+      const lastNow = nowTasks[nowTasks.length - 1];
+      const bottomKey = generateKeyBetween(lastNow?.sort_order ?? null, null);
+      updateTask(topLater.id, { category: "now", sort_order: bottomKey });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [nowTasks.length, laterTasks.length]);
+
   // ── Drag handlers ─────────────────────────────────────────────────
   const handleDragStart = (event: DragStartEvent) => {
     const task = (event.active.data.current as { task: Task } | undefined)?.task ?? null;
@@ -678,6 +693,14 @@ export default function TriageMode({ tasks, updateTask, addTasks, deleteTask, on
       setActiveTask(null);
       setOverColumnId(null);
       return;
+    }
+
+    // When dropping into "Do now" at capacity, demote the bottom "now" task to top of "later"
+    if (targetCol === "now" && currentCol !== "now" && nowTasks.length >= DO_NOW_CAP) {
+      const bottomNow = nowTasks[nowTasks.length - 1];
+      const firstLater = laterTasks[0];
+      const topLaterKey = generateKeyBetween(null, firstLater?.sort_order ?? null);
+      updateTask(bottomNow.id, { category: "later", sort_order: topLaterKey });
     }
 
     const targetList = columnTaskMap[targetCol];
