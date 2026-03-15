@@ -10,14 +10,7 @@ const PHASES = [
   { label: "Hold",    seconds: 4 },
 ];
 
-interface Props {
-  speak: (text: string) => void;
-  voiceEnabled: boolean;
-}
-
-export default function ResetMode({ speak, voiceEnabled }: Props) {
-  void speak;
-  void voiceEnabled;
+export default function ResetMode() {
 
   const [phaseIndex, setPhaseIndex] = useState(0);
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
