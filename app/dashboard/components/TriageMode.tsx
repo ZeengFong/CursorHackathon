@@ -581,6 +581,41 @@ export default function TriageMode({ tasks, updateTask, addTasks, deleteTask, on
 
   const visibleTasks = tasks.filter((t) => t.status !== "done");
 
+  // ── Derived task lists (must be above early return so useEffect always runs) ──
+  const DO_NOW_CAP = 3;
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const twoDaysOut = new Date(today);
+  twoDaysOut.setDate(twoDaysOut.getDate() + 2);
+
+  // Treat old "drop" category tasks as "later" since we removed the Drop column
+  const nowTasks   = sortTasks(visibleTasks.filter((t) => t.category === "now"));
+  const laterTasks = sortTasks(visibleTasks.filter((t) => t.category === "later" || t.category === "drop"));
+
+  // Upcoming: copies of tasks (from any column) due within 2 days
+  const upcomingTasks = sortTasks(
+    visibleTasks.filter((t) => {
+      if (!t.due_date) return false;
+      const d = new Date(t.due_date + "T00:00:00");
+      return d.getTime() >= today.getTime() && d.getTime() < twoDaysOut.getTime();
+    })
+  );
+
+  // ── Auto-promote: keep "Do now" filled up to DO_NOW_CAP ──────────
+  // When "Do now" drops below the cap and "Do later" has tasks, move
+  // the top "Do later" task to the bottom of "Do now".
+  useEffect(() => {
+    if (nowTasks.length < DO_NOW_CAP && laterTasks.length > 0) {
+      const topLater = laterTasks[0];
+      const lastNow = nowTasks[nowTasks.length - 1];
+      const bottomKey = generateKeyBetween(lastNow?.sort_order ?? null, null);
+      updateTask(topLater.id, { category: "now", sort_order: bottomKey });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [nowTasks.length, laterTasks.length]);
+
+  // ── Empty state (after all hooks) ─────────────────────────────────
   if (visibleTasks.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center h-full min-h-[60vh]">
@@ -602,27 +637,6 @@ export default function TriageMode({ tasks, updateTask, addTasks, deleteTask, on
     }, 280);
   };
 
-  // ── Derived task lists ────────────────────────────────────────────
-  const DO_NOW_CAP = 3;
-
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const twoDaysOut = new Date(today);
-  twoDaysOut.setDate(twoDaysOut.getDate() + 2);
-
-  // Treat old "drop" category tasks as "later" since we removed the Drop column
-  const nowTasks   = sortTasks(visibleTasks.filter((t) => t.category === "now"));
-  const laterTasks = sortTasks(visibleTasks.filter((t) => t.category === "later" || t.category === "drop"));
-
-  // Upcoming: copies of tasks (from any column) due within 2 days
-  const upcomingTasks = sortTasks(
-    visibleTasks.filter((t) => {
-      if (!t.due_date) return false;
-      const d = new Date(t.due_date + "T00:00:00");
-      return d.getTime() >= today.getTime() && d.getTime() < twoDaysOut.getTime();
-    })
-  );
-
   // ── Which column does a task currently appear in? ─────────────────
   const getDisplayColumn = (taskId: string): ColumnId | null => {
     if (nowTasks.some((t) => t.id === taskId)) return "now";
@@ -636,26 +650,12 @@ export default function TriageMode({ tasks, updateTask, addTasks, deleteTask, on
     const topKey = generateKeyBetween(null, firstLater?.sort_order ?? null);
     const task = visibleTasks.find((t) => t.id === taskId);
     if (!task) return;
-    // If it's already in "later" (or "drop"), just move to top; if in "now", move to later + top
     const updates: Partial<Task> = { sort_order: topKey };
     if (task.category !== "later") {
       updates.category = "later";
     }
     updateTask(taskId, updates);
   };
-
-  // ── Auto-promote: keep "Do now" filled up to DO_NOW_CAP ──────────
-  // When "Do now" drops below the cap and "Do later" has tasks, move
-  // the top "Do later" task to the bottom of "Do now".
-  useEffect(() => {
-    if (nowTasks.length < DO_NOW_CAP && laterTasks.length > 0) {
-      const topLater = laterTasks[0];
-      const lastNow = nowTasks[nowTasks.length - 1];
-      const bottomKey = generateKeyBetween(lastNow?.sort_order ?? null, null);
-      updateTask(topLater.id, { category: "now", sort_order: bottomKey });
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [nowTasks.length, laterTasks.length]);
 
   // ── Drag handlers ─────────────────────────────────────────────────
   const handleDragStart = (event: DragStartEvent) => {
