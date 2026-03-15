@@ -568,6 +568,7 @@ export default function TriageMode({ tasks, updateTask, addTasks, deleteTask, on
   const [exitingIds, setExitingIds]         = useState<Set<string>>(new Set());
   const [calendarId, setCalendarId]         = useState<string | null>(null);
   const [highlightedIds, setHighlightedIds] = useState<Set<string>>(new Set());
+  const [isFocused, setIsFocused]           = useState(false);
   const dateButtonRefs = useRef<Map<string, HTMLButtonElement>>(new Map());
 
   // ── Drag state ──────────────────────────────────────────────────
@@ -580,15 +581,6 @@ export default function TriageMode({ tasks, updateTask, addTasks, deleteTask, on
   );
 
   const visibleTasks = tasks.filter((t) => t.status !== "done");
-
-  if (visibleTasks.length === 0) {
-    return (
-      <div className="flex flex-col items-center justify-center h-full min-h-[60vh]">
-        <p className="font-serif italic text-3xl text-[#5DCAA5]">You&apos;ve cleared everything.</p>
-        <p className="mt-2 font-sans text-sm text-[#A0A8B8]/40">Rare.</p>
-      </div>
-    );
-  }
 
   const markDone = (id: string) => {
     setExitingIds((prev) => new Set(prev).add(id));
@@ -665,6 +657,16 @@ export default function TriageMode({ tasks, updateTask, addTasks, deleteTask, on
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [nowTasks.length, laterTasks.length]);
+
+  // ── Empty state (after all hooks) ─────────────────────────────────
+  if (visibleTasks.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center h-full min-h-[60vh]">
+        <p className="font-serif italic text-3xl text-[#5DCAA5]">You&apos;ve cleared everything.</p>
+        <p className="mt-2 font-sans text-sm text-[#A0A8B8]/40">Rare.</p>
+      </div>
+    );
+  }
 
   // ── Drag handlers ─────────────────────────────────────────────────
   const handleDragStart = (event: DragStartEvent) => {
@@ -748,7 +750,13 @@ export default function TriageMode({ tasks, updateTask, addTasks, deleteTask, on
           nextKey = filtered[filteredOverIndex]?.sort_order ?? null;
         }
 
-        updates.sort_order = generateKeyBetween(prevKey, nextKey);
+        // Guard against invalid key ordering (e.g. duplicate sort_order values)
+        if (prevKey !== null && nextKey !== null && prevKey >= nextKey) {
+          // Keys are out of order — just place after prevKey
+          updates.sort_order = generateKeyBetween(prevKey, null);
+        } else {
+          updates.sort_order = generateKeyBetween(prevKey, nextKey);
+        }
       }
     }
 
@@ -778,22 +786,49 @@ export default function TriageMode({ tasks, updateTask, addTasks, deleteTask, on
   return (
     <div className="p-6 sm:p-8">
       {/* Header row */}
-      <div className="mb-7 flex items-start justify-between gap-4">
-        <div>
-          <h2 className="font-serif text-2xl text-[#E8EAF0]">Triage</h2>
-          <p className="mt-1 font-sans text-xs text-[#A0A8B8]/50">
+      <div
+        className="mb-7 flex items-start justify-between gap-4 transition-all duration-500 ease-out"
+        style={isFocused ? { justifyContent: "center" } : undefined}
+      >
+        <div className={`transition-all duration-500 ease-out ${isFocused ? "text-center" : ""}`}>
+          <h2
+            className="font-serif text-2xl cursor-pointer select-none transition-colors duration-400"
+            style={{ color: isFocused ? "#1D9E75" : "#E8EAF0" }}
+            onClick={() => setIsFocused((f) => !f)}
+          >
+            Triage
+          </h2>
+          <p
+            className="mt-1 font-sans text-xs transition-all duration-400"
+            style={{
+              color: "rgba(160,168,184,0.5)",
+              opacity: isFocused ? 0 : 1,
+              maxHeight: isFocused ? 0 : 24,
+              overflow: "hidden",
+            }}
+          >
             Drag to reorder or move between columns · hover to mark done
           </p>
         </div>
 
         {/* Advisor mic */}
-        <AdvisorMicWrapper
-          tasks={tasks}
-          setHighlightedIds={setHighlightedIds}
-          updateTask={updateTask}
-          addTasks={addTasks}
-          deleteTask={deleteTask}
-        />
+        <div
+          className="transition-all duration-400 ease-out"
+          style={{
+            opacity: isFocused ? 0 : 1,
+            pointerEvents: isFocused ? "none" : "auto",
+            width: isFocused ? 0 : undefined,
+            overflow: "hidden",
+          }}
+        >
+          <AdvisorMicWrapper
+            tasks={tasks}
+            setHighlightedIds={setHighlightedIds}
+            updateTask={updateTask}
+            addTasks={addTasks}
+            deleteTask={deleteTask}
+          />
+        </div>
       </div>
 
       <DndContext
@@ -804,7 +839,15 @@ export default function TriageMode({ tasks, updateTask, addTasks, deleteTask, on
         onDragEnd={handleDragEnd}
         onDragCancel={handleDragCancel}
       >
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
+        <div
+          className={`grid gap-5 transition-all duration-500 ease-out ${
+            isFocused ? "grid-cols-1" : "grid-cols-1 sm:grid-cols-3"
+          }`}
+          style={{
+            maxWidth: isFocused ? 420 : undefined,
+            margin: isFocused ? "0 auto" : undefined,
+          }}
+        >
           <DroppableColumn
             id="now"
             tasks={nowTasks}
@@ -821,25 +864,49 @@ export default function TriageMode({ tasks, updateTask, addTasks, deleteTask, on
             dateButtonRefs={dateButtonRefs}
           />
 
-          <DroppableColumn
-            id="later"
-            tasks={laterTasks}
-            subtitle={`${laterTasks.length} upcoming${laterTasks.length === 10 ? " (top 10)" : ""}`}
-            emptyText="Nothing pending."
-            {...getColumnHighlight("later")}
-            isDragActive={activeTask != null}
-            highlightedIds={highlightedIds}
-            onMarkDone={markDone}
-            onDateChange={(id, iso) => updateTask(id, { due_date: iso })}
-            calendarId={calendarId}
-            setCalendarId={setCalendarId}
-            dateButtonRefs={dateButtonRefs}
-          />
+          {/* Do later — fades out in focus mode */}
+          <div
+            className="transition-all duration-500 ease-out"
+            style={{
+              opacity: isFocused ? 0 : 1,
+              maxHeight: isFocused ? 0 : 9999,
+              overflow: "hidden",
+              pointerEvents: isFocused ? "none" : "auto",
+              transform: isFocused ? "scale(0.95)" : "scale(1)",
+            }}
+          >
+            <DroppableColumn
+              id="later"
+              tasks={laterTasks}
+              subtitle={`${laterTasks.length} upcoming${laterTasks.length === 10 ? " (top 10)" : ""}`}
+              emptyText="Nothing pending."
+              {...getColumnHighlight("later")}
+              isDragActive={activeTask != null}
+              highlightedIds={highlightedIds}
+              onMarkDone={markDone}
+              onDateChange={(id, iso) => updateTask(id, { due_date: iso })}
+              calendarId={calendarId}
+              setCalendarId={setCalendarId}
+              dateButtonRefs={dateButtonRefs}
+            />
+          </div>
 
-          <UpcomingColumn
-            tasks={upcomingTasks}
-            onPromote={promoteToLaterTop}
-          />
+          {/* Upcoming — fades out in focus mode */}
+          <div
+            className="transition-all duration-500 ease-out"
+            style={{
+              opacity: isFocused ? 0 : 1,
+              maxHeight: isFocused ? 0 : 9999,
+              overflow: "hidden",
+              pointerEvents: isFocused ? "none" : "auto",
+              transform: isFocused ? "scale(0.95)" : "scale(1)",
+            }}
+          >
+            <UpcomingColumn
+              tasks={upcomingTasks}
+              onPromote={promoteToLaterTop}
+            />
+          </div>
         </div>
 
         <DragOverlay dropAnimation={{
