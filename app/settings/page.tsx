@@ -152,6 +152,10 @@ export default function SettingsPage() {
   const [showPast, setShowPast] = useState(false);
   const [calSaved, flashCal]    = useSaved();
 
+  // ── Task archive ───────────────────────────────────────────────────
+  const [archivedTasks, setArchivedTasks] = useState<{ id: number; Name: string; category: string; due_date: string | null; created_at: string }[]>([]);
+  const [archiveLoading, setArchiveLoading] = useState(true);
+
   // ── Danger ──────────────────────────────────────────────────────────
   const [clearMsg, setClearMsg] = useState("");
 
@@ -171,6 +175,21 @@ export default function SettingsPage() {
     const loadVoices = () => setVoices(window.speechSynthesis?.getVoices() ?? []);
     loadVoices();
     window.speechSynthesis?.addEventListener("voiceschanged", loadVoices);
+
+    // Load archived (completed) tasks from Supabase
+    (async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) { setArchiveLoading(false); return; }
+      const { data } = await supabase
+        .from("tasks")
+        .select("id, Name, category, due_date, created_at")
+        .eq("user_id", user.id)
+        .eq("completed", true)
+        .order("created_at", { ascending: false });
+      setArchivedTasks(data ?? []);
+      setArchiveLoading(false);
+    })();
+
     return () => window.speechSynthesis?.removeEventListener("voiceschanged", loadVoices);
   }, []);
 
@@ -202,6 +221,16 @@ export default function SettingsPage() {
     lsSet("BrainDump_autodate", String(autoDate));
     lsSet("BrainDump_show_past", String(showPast));
     flashCal();
+  }
+
+  async function restoreTask(id: number) {
+    const { error } = await supabase.from("tasks").update({ completed: false }).eq("id", id);
+    if (!error) setArchivedTasks((prev) => prev.filter((t) => t.id !== id));
+  }
+
+  async function deleteArchivedTask(id: number) {
+    const { error } = await supabase.from("tasks").delete().eq("id", id);
+    if (!error) setArchivedTasks((prev) => prev.filter((t) => t.id !== id));
   }
 
   function clearTasks() {
@@ -396,6 +425,76 @@ export default function SettingsPage() {
             />
             <SaveButton onClick={saveCal} saved={calSaved} label="Save preferences" />
           </Section>
+
+          {/* ── Task archive ─────────────────────────────────────────── */}
+          <section>
+            <h2 className="font-sans text-[11px] font-semibold tracking-widest uppercase text-[#A0A8B8]/40 mb-3">
+              Task archive
+            </h2>
+            <div className="bg-[#13161C] border border-[#1D9E75]/8 rounded-xl p-5 flex flex-col gap-3">
+              <div>
+                <p className="font-sans text-sm text-[#E8EAF0]">Completed tasks</p>
+                <p className="mt-0.5 font-sans text-[12px] text-[#A0A8B8]/50">
+                  Restore a task to send it back to Triage, or delete it for good.
+                </p>
+              </div>
+
+              {archiveLoading ? (
+                <p className="py-6 text-center font-sans text-xs text-[#A0A8B8]/20">Loading…</p>
+              ) : archivedTasks.length === 0 ? (
+                <p className="py-6 text-center font-sans text-xs text-[#A0A8B8]/20 italic">
+                  Nothing here yet. Tasks you finish will show up here.
+                </p>
+              ) : (
+                <div className="flex flex-col gap-1.5 max-h-[280px] overflow-y-auto pr-1" style={{ scrollbarWidth: "thin", scrollbarColor: "rgba(29,158,117,0.15) transparent" }}>
+                  {archivedTasks.map((t) => {
+                    const catColor =
+                      t.category === "now" ? "#1D9E75"
+                      : t.category === "later" ? "#EF9F27"
+                      : "#A0A8B8";
+
+                    return (
+                      <div
+                        key={t.id}
+                        className="flex items-center gap-3 px-4 py-2.5 rounded-lg bg-[#0D0F14] border border-white/6 group"
+                      >
+                        <span
+                          className="w-1.5 h-1.5 rounded-full shrink-0"
+                          style={{ backgroundColor: catColor }}
+                        />
+                        <span className="font-sans text-sm text-[#E8EAF0]/70 leading-snug flex-1 truncate">
+                          {t.Name}
+                        </span>
+                        {t.due_date && (
+                          <span className="font-sans text-[11px] text-[#A0A8B8]/30 shrink-0 tabular-nums">
+                            {t.due_date.slice(0, 10)}
+                          </span>
+                        )}
+                        <button
+                          onClick={() => restoreTask(t.id)}
+                          className="text-[10px] font-sans text-[#A0A8B8]/40 hover:text-[#5DCAA5] transition-colors px-2 py-0.5 rounded hover:bg-[#1D9E75]/8"
+                        >
+                          Restore
+                        </button>
+                        <button
+                          onClick={() => deleteArchivedTask(t.id)}
+                          className="text-[10px] font-sans text-[#A0A8B8]/40 hover:text-[#D85A30] transition-colors px-2 py-0.5 rounded hover:bg-[#D85A30]/8"
+                        >
+                          Delete
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+
+              {archivedTasks.length > 0 && (
+                <p className="font-sans text-[11px] text-[#A0A8B8]/30 tabular-nums">
+                  {archivedTasks.length} task{archivedTasks.length !== 1 ? "s" : ""} archived
+                </p>
+              )}
+            </div>
+          </section>
 
           {/* ── Danger zone ─────────────────────────────────────────── */}
           <section>

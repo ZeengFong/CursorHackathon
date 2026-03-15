@@ -91,12 +91,14 @@ export default function CalendarMode({ tasks, updateTask }: Props) {
     return arr;
   }, [firstDayIndex, daysInMonth]);
 
-  // Enrich tasks with auto-parsed dates (only for those without due_date)
+  // Only show pending tasks; enrich with auto-parsed dates
   const enrichedTasks = useMemo(() =>
-    tasks.map((t) => ({
-      ...t,
-      due_date: t.due_date ?? (t.status !== "done" ? parseDueDate(t.text) : undefined),
-    })),
+    tasks
+      .filter((t) => t.status !== "done")
+      .map((t) => ({
+        ...t,
+        due_date: t.due_date ?? parseDueDate(t.text),
+      })),
     [tasks]
   );
 
