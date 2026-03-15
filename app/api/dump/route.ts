@@ -9,7 +9,8 @@ export async function POST(request: Request) {
   // Accept both new { text, files } shape and legacy { dump } shape
   const body = await request.json();
   const content: string = body.text ?? body.dump ?? "";
-  const files: { name: string; type: string; file_id: string }[] = body.files ?? [];
+  const files: { name: string; type: string; file_id: string }[] =
+    body.files ?? [];
 
   const textContent = content.trim();
   if (!textContent && files.length === 0) {
@@ -32,9 +33,8 @@ export async function POST(request: Request) {
     }
 
     // If we only have text (no files), keep it simple
-    const userContent = parts.length === 1 && parts[0].type === "text"
-      ? textContent
-      : parts;
+    const userContent =
+      parts.length === 1 && parts[0].type === "text" ? textContent : parts;
 
     const completion = await openai.chat.completions.create({
       model: files.length > 0 ? "gpt-4o" : "gpt-4o-mini",
@@ -42,7 +42,7 @@ export async function POST(request: Request) {
         { role: "system", content: TRIAGE_SYSTEM_PROMPT },
         { role: "user", content: userContent },
       ],
-      max_tokens: 1024,
+      max_tokens: 50000,
       temperature: 0.3,
       response_format: { type: "json_object" },
     });
@@ -59,7 +59,10 @@ export async function POST(request: Request) {
     const tasks = (parsed.tasks ?? []).map((t: unknown) => {
       const task = t as Record<string, unknown>;
       return {
-        id: typeof task.id === "string" && task.id ? task.id : crypto.randomUUID(),
+        id:
+          typeof task.id === "string" && task.id
+            ? task.id
+            : crypto.randomUUID(),
         text: String(task.text ?? ""),
         category: ["now", "later", "drop"].includes(task.category as string)
           ? task.category
@@ -77,6 +80,9 @@ export async function POST(request: Request) {
     for (const file of files) {
       openai.files.delete(file.file_id).catch(() => {});
     }
-    return NextResponse.json({ tasks: [], error: "Failed to process dump. Please try again." });
+    return NextResponse.json({
+      tasks: [],
+      error: "Failed to process dump. Please try again.",
+    });
   }
 }
