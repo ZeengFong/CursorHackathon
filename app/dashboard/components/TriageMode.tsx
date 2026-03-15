@@ -615,13 +615,25 @@ export default function TriageMode({ tasks, updateTask, addTasks, deleteTask, on
       // Dropped on/near a specific task — insert at that position
       const overIndex = targetList.findIndex((t) => t.id === overId);
       if (overIndex >= 0) {
-        // Filter out the active task from the list to avoid self-reference
+        const activeIndex = targetList.findIndex((t) => t.id === activeTask.id);
+        const isDraggingDown = currentCol === targetCol && activeIndex >= 0 && activeIndex < overIndex;
+
         const filtered = targetList.filter((t) => t.id !== activeTask.id);
-        // Find where the over task is in the filtered list
         const filteredOverIndex = filtered.findIndex((t) => t.id === overId);
 
-        const prevKey = filteredOverIndex > 0 ? filtered[filteredOverIndex - 1].sort_order ?? null : null;
-        const nextKey = filtered[filteredOverIndex]?.sort_order ?? null;
+        let prevKey: string | null;
+        let nextKey: string | null;
+
+        if (isDraggingDown) {
+          // Insert AFTER the over task
+          prevKey = filtered[filteredOverIndex]?.sort_order ?? null;
+          nextKey = filteredOverIndex + 1 < filtered.length ? filtered[filteredOverIndex + 1].sort_order ?? null : null;
+        } else {
+          // Insert BEFORE the over task (correct for upward drags and cross-column)
+          prevKey = filteredOverIndex > 0 ? filtered[filteredOverIndex - 1].sort_order ?? null : null;
+          nextKey = filtered[filteredOverIndex]?.sort_order ?? null;
+        }
+
         updates.sort_order = generateKeyBetween(prevKey, nextKey);
       }
     }
