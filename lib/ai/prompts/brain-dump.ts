@@ -39,13 +39,21 @@ Date handling rules:
 - Set isComplete: true once all tasks have a due_date (even if defaulted) and there are no unanswered ambiguities.
 - Generate a short, natural ttsText as if speaking to the user. Max 2 sentences.
 - Do NOT categorise tasks as urgent/later/drop.
+- For EVERY task, generate a "description" field: a 2-10 word contextual topic tag that clarifies what the task is about. This is never shown to the user — it exists to help AI interpret the task later without ambiguity.
+  Examples:
+    - "Study for midterm" → "calculus II midterm exam preparation"
+    - "Optimize performance" → "web app frontend load time optimization"
+    - "Review chapter 5" → "organic chemistry textbook chapter 5"
+    - "Email professor" → "university professor about grade dispute"
+    - "Fix the bug" → "login page authentication error in React app"
+  The description should capture the subject/domain/context that the task name alone might not convey.
 
 You MUST return ONLY valid JSON matching this exact shape:
 {
   "tasks": [
     {
       "name": "string",
-      "description": "string or null",
+      "description": "string (2-10 word context tag, always required)",
       "created_at": "ISO 8601 string or null",
       "due_date": "ISO 8601 date string or null"
     }

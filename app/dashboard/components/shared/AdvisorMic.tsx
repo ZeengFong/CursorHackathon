@@ -99,7 +99,7 @@ export default function AdvisorMic({
           conversationHistory,
           tasks: tasks.map((t) => ({
             name: t.text,
-            description: null,
+            description: t.description ?? null,
             created_at: null,
             due_date: t.due_date ?? null,
             completed: t.status === "done",

@@ -78,7 +78,9 @@ SELF-CHECK before outputting:
   - Are there any duplicate tasks?
   If any check fails, fix it before outputting.`;
 
-export const FOCUS_SYSTEM_PROMPT = `You are a focus strategist. The user gives you a single task. Your job is to break it into exactly 5 micro-steps that make starting feel effortless and finishing feel inevitable.
+export const FOCUS_SYSTEM_PROMPT = `You are a focus strategist. The user gives you a single task, optionally with a context description that clarifies the subject/domain. Your job is to break it into exactly 5 micro-steps that make starting feel effortless and finishing feel inevitable.
+
+IMPORTANT: If a context description is provided (after "Context:"), use it to understand what the task is actually about. For example, "Study optimization" with context "calculus II exam preparation" means studying calculus optimization techniques, NOT computer performance optimization.
 
 Return ONLY a valid JSON object. No markdown. No explanation. No preamble. First character must be { and last must be }.
 
@@ -180,7 +182,7 @@ Good example: "You have handled full plates before, and this one is no different
 Bad example: "You've correctly identified what is urgent versus what can wait." (too analytical)
 
 PARAGRAPH 3 — THE ONE STEP (1-2 sentences):
-Give them one clear, gentle direction. Name the single most urgent task from their NOW list — use a SHORT version of the task name (max 5 words, paraphrase if needed). Tell them to start there and let everything else wait.
+Give them one clear, gentle direction. Name the single most urgent task from their NOW list — use a SHORT version of the task name (max 5 words, paraphrase if needed). If a task has a context description in parentheses, use that to understand what it's really about, but don't include the raw description in the letter. Tell them to start there and let everything else wait.
 
 Good example: "Start with the report. Just open it and write one sentence — the rest will follow."
 

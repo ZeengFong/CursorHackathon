@@ -22,6 +22,7 @@ export type Category = "now" | "later" | "drop";
 export interface Task {
   id: string;
   text: string;
+  description?: string | null;
   category: Category;
   status: "pending" | "done";
   source: "voice" | "file" | "typed";
@@ -36,6 +37,7 @@ function migrateTask(raw: Record<string, unknown>): Task {
   return {
     id:       String(raw.id ?? crypto.randomUUID()),
     text:     String(raw.text ?? ""),
+    description: typeof raw.description === "string" ? raw.description : null,
     category: validCategories.has(raw.category as string) ? (raw.category as Category) : "later",
     status:   raw.status === "done" || raw.done === true ? "done" : "pending",
     source:   validSources.has(raw.source as string) ? (raw.source as Task["source"]) : "typed",
@@ -148,6 +150,7 @@ export default function Dashboard() {
         freshTasks = data.map((row: Record<string, unknown>) => ({
           id: String(row.id),
           text: String(row.Name ?? ""),
+          description: typeof row.Description === "string" ? row.Description : null,
           category: (["now", "later", "drop"].includes(row.category as string) ? row.category : "later") as Category,
           status: row.completed ? "done" as const : "pending" as const,
           source: (["voice", "file", "typed"].includes(row.source as string) ? row.source : "typed") as Task["source"],
@@ -239,6 +242,7 @@ export default function Dashboard() {
     if (user) {
       const rows = migrated.map((t) => ({
         Name: t.text,
+        Description: t.description || null,
         completed: t.status === "done",
         category: t.category,
         source: t.source,
@@ -252,6 +256,7 @@ export default function Dashboard() {
         const dbTasks: Task[] = data.map((row: Record<string, unknown>) => ({
           id: String(row.id),
           text: String(row.Name ?? ""),
+          description: typeof row.Description === "string" ? row.Description : null,
           category: (row.category as Category) ?? "later",
           status: row.completed ? "done" as const : "pending" as const,
           source: (row.source as Task["source"]) ?? "typed",

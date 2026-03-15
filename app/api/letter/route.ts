@@ -15,8 +15,10 @@ export async function POST(req: NextRequest) {
     // Build a clear task list for the prompt
     const lines = tasks
       .map(
-        (t: { text: string; category: string }) =>
-          `[${t.category.toUpperCase()}] ${t.text}`,
+        (t: { text: string; category: string; description?: string | null }) =>
+          t.description
+            ? `[${t.category.toUpperCase()}] ${t.text} (${t.description})`
+            : `[${t.category.toUpperCase()}] ${t.text}`,
       )
       .join("\n");
 

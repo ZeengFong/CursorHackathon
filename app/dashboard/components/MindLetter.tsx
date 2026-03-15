@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from 'react'
 type Task = {
   id: string
   text: string
+  description?: string | null
   category: string
   status: string
   source: string

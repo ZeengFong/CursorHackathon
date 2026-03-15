@@ -152,6 +152,7 @@ export default function HomeMode({ tasks, userName, updateTask, addTasks, delete
       const mapped: Task[] = data.tasks.map((t) => ({
         id: crypto.randomUUID(),
         text: t.name,
+        description: t.description ?? null,
         category: "later" as const,
         status: "pending" as const,
         source: (attachedFilesRef.current.length > 0 ? "file" : "typed") as Task["source"],

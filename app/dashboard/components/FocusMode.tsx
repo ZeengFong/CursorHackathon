@@ -78,7 +78,7 @@ export default function FocusMode({ tasks }: Props) {
     fetch("/api/focus", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ task: activeTask.text }),
+      body: JSON.stringify({ task: activeTask.text, description: activeTask.description }),
     })
       .then((r) => r.json())
       .then((data) => {

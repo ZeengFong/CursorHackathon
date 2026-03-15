@@ -13,17 +13,21 @@ const FALLBACK_STEPS = [
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { task } = body as { task: string };
+    const { task, description } = body as { task: string; description?: string | null };
 
     if (!task || task.trim().length === 0) {
       return NextResponse.json({ steps: FALLBACK_STEPS });
     }
 
+    const userContent = description
+      ? `Task: ${task}\nContext: ${description}`
+      : `Task: ${task}`;
+
     const completion = await openai.chat.completions.create({
       model: "gpt-4o-mini",
       messages: [
         { role: "system", content: FOCUS_SYSTEM_PROMPT },
-        { role: "user", content: `Task: ${task}` },
+        { role: "user", content: userContent },
       ],
       max_tokens: 16384,
       temperature: 0.3,
