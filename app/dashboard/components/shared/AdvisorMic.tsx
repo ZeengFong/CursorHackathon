@@ -206,7 +206,7 @@ export default function AdvisorMic({
     setIsLoading(true);
 
     // Keep recognition alive for 2s to capture trailing speech
-    await new Promise((r) => setTimeout(r, 2000));
+    await new Promise((r) => setTimeout(r, 3500));
     recognitionRef.current?.stop();
     // Small grace period for final onresult event
     await new Promise((r) => setTimeout(r, 200));

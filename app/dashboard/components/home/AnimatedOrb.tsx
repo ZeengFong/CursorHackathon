@@ -2,7 +2,6 @@
 
 import { useState, useRef, useEffect } from "react";
 import type { Task } from "../../page";
-import { supabase } from "@/lib/supabase";
 
 interface Props {
   tasks: Task[];
@@ -18,6 +17,8 @@ export default function AnimatedOrb({ tasks, updateTask, addTasks, deleteTask, t
   const [isRecording, setIsRecording] = useState(false);
   const [isLoading, setIsLoading]     = useState(false);
   const [isPlaying, setIsPlaying]     = useState(false);
+  const [replyText, setReplyText]     = useState<string | null>(null);
+  const [typedChars, setTypedChars]   = useState(0);
   const [conversationHistory, setConversationHistory] = useState<
     { role: "user" | "assistant"; content: string }[]
   >([]);
@@ -26,11 +27,30 @@ export default function AnimatedOrb({ tasks, updateTask, addTasks, deleteTask, t
   const transcriptRef  = useRef<string>("");
   const audioRef       = useRef<HTMLAudioElement | null>(null);
   const shiftRecordingRef = useRef(false);
+  const replyTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const stopPlayback = () => {
     audioRef.current?.pause();
     setIsPlaying(false);
   };
+
+  // Typewriter effect for reply text
+  useEffect(() => {
+    if (!replyText || typedChars >= replyText.length) return;
+    const timer = setTimeout(() => setTypedChars((c) => c + 1), 25);
+    return () => clearTimeout(timer);
+  }, [replyText, typedChars]);
+
+  // Auto-dismiss reply after fully typed + 4s
+  useEffect(() => {
+    if (replyText && typedChars >= replyText.length) {
+      replyTimerRef.current = setTimeout(() => {
+        setReplyText(null);
+        setTypedChars(0);
+      }, 6000);
+      return () => { if (replyTimerRef.current) clearTimeout(replyTimerRef.current); };
+    }
+  }, [replyText, typedChars]);
 
   const startRecordingRef = useRef<() => void>(() => {});
   const stopRecordingRef = useRef<() => Promise<void>>(async () => {});
@@ -60,7 +80,13 @@ export default function AnimatedOrb({ tasks, updateTask, addTasks, deleteTask, t
 
   const sendToAdvisor = async (userMessage: string) => {
     setIsLoading(true);
+    // Clear previous reply
+    setReplyText(null);
+    setTypedChars(0);
+    if (replyTimerRef.current) clearTimeout(replyTimerRef.current);
+
     try {
+      console.log("[orb] sending to advisor:", userMessage);
       const advisorRes = await fetch("/api/ai/advisor", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -78,8 +104,14 @@ export default function AnimatedOrb({ tasks, updateTask, addTasks, deleteTask, t
         }),
       });
 
-      if (!advisorRes.ok) throw new Error(`Advisor ${advisorRes.status}`);
+      console.log("[orb] advisor status:", advisorRes.status);
+      if (!advisorRes.ok) {
+        const errText = await advisorRes.text();
+        console.error("[orb] advisor error:", errText);
+        throw new Error(`Advisor ${advisorRes.status}`);
+      }
       const advisor = await advisorRes.json();
+      console.log("[orb] advisor response:", JSON.stringify(advisor).slice(0, 200));
 
       setConversationHistory((prev) => [
         ...prev,
@@ -87,11 +119,17 @@ export default function AnimatedOrb({ tasks, updateTask, addTasks, deleteTask, t
         { role: "assistant", content: advisor.reply },
       ]);
 
+      // Show reply as floating typewriter dialogue
+      setReplyText(advisor.displaySummary || advisor.reply || "Done.");
+      setTypedChars(0);
+
       // Increment times_pondered
       onPondered();
 
+      // Execute actions
       const actions = advisor.actions ?? [];
       if (!advisor.needsConfirmation && actions.length > 0) {
+        console.log("[orb] executing actions:", JSON.stringify(actions));
         const tasksToAdd: Task[] = [];
         for (const action of actions) {
           if (action.type === "add") {
@@ -106,23 +144,33 @@ export default function AnimatedOrb({ tasks, updateTask, addTasks, deleteTask, t
           } else if (action.type === "complete") {
             const match = tasks.find((t) => t.text.toLowerCase() === action.taskName.toLowerCase() && t.status !== "done");
             if (match) updateTask(match.id, { status: "done" });
+            else console.warn("[orb] no match for complete:", action.taskName);
           } else if (action.type === "reschedule") {
             const match = tasks.find((t) => t.text.toLowerCase() === action.taskName.toLowerCase() && t.status !== "done");
             if (match && action.dueDate) updateTask(match.id, { due_date: action.dueDate });
+            else console.warn("[orb] no match for reschedule:", action.taskName);
           } else if (action.type === "delete") {
             const match = tasks.find((t) => t.text.toLowerCase() === action.taskName.toLowerCase());
             if (match) deleteTask(match.id);
+            else console.warn("[orb] no match for delete:", action.taskName);
           }
         }
         if (tasksToAdd.length > 0) await addTasks(tasksToAdd);
       }
 
+      // TTS playback
+      console.log("[orb] calling TTS...");
       const ttsRes = await fetch("/api/tts", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ text: advisor.reply, voiceId: "calm" }),
       });
-      if (!ttsRes.ok) throw new Error(`TTS ${ttsRes.status}`);
+      console.log("[orb] TTS status:", ttsRes.status);
+      if (!ttsRes.ok) {
+        const errText = await ttsRes.text();
+        console.error("[orb] TTS error:", errText);
+        throw new Error(`TTS ${ttsRes.status}`);
+      }
       const ttsData = await ttsRes.json();
       if (!ttsData.audioBase64) throw new Error("TTS returned no audio data");
 
@@ -135,8 +183,12 @@ export default function AnimatedOrb({ tasks, updateTask, addTasks, deleteTask, t
       const audio = new Audio(url);
       audioRef.current = audio;
       setIsPlaying(true);
+      audio.onerror = (e) => console.error("[orb] audio error:", e);
       audio.onended = () => { setIsPlaying(false); URL.revokeObjectURL(url); };
-      await audio.play().catch(() => setIsPlaying(false));
+      await audio.play().catch((e) => {
+        console.error("[orb] play() rejected:", e);
+        setIsPlaying(false);
+      });
     } catch (err) {
       console.error("[AnimatedOrb]", err);
     } finally {
@@ -146,6 +198,7 @@ export default function AnimatedOrb({ tasks, updateTask, addTasks, deleteTask, t
 
   const startRecording = () => {
     if (isPlaying) { stopPlayback(); return; }
+    console.log("[orb] startRecording");
 
     const win = window as unknown as Record<string, unknown>;
     const SR = (win.SpeechRecognition ?? win.webkitSpeechRecognition) as (new () => {
@@ -156,7 +209,10 @@ export default function AnimatedOrb({ tasks, updateTask, addTasks, deleteTask, t
       stop: () => void;
     }) | undefined;
 
-    if (!SR) return;
+    if (!SR) {
+      console.warn("[orb] SpeechRecognition not available");
+      return;
+    }
 
     transcriptRef.current = "";
     const rec = new SR();
@@ -164,21 +220,32 @@ export default function AnimatedOrb({ tasks, updateTask, addTasks, deleteTask, t
     rec.interimResults = false;
     rec.onresult = (e) => {
       transcriptRef.current = Array.from({ length: Object.keys(e.results).length }, (_, i) => e.results[i][0].transcript).join(" ");
+      console.log("[orb] transcript so far:", transcriptRef.current);
     };
     rec.start();
     recognitionRef.current = rec;
     setIsRecording(true);
+
+    // Clear previous reply when starting new recording
+    setReplyText(null);
+    setTypedChars(0);
   };
 
   const stopRecording = async () => {
     if (!recognitionRef.current) return;
+    console.log("[orb] stopRecording — buffering 3.5s...");
     setIsRecording(false);
     setIsLoading(true);
-    await new Promise((r) => setTimeout(r, 2000));
+
+    // 3.5s buffer to capture trailing speech
+    await new Promise((r) => setTimeout(r, 3500));
     recognitionRef.current?.stop();
+    // 200ms grace period for final onresult
     await new Promise((r) => setTimeout(r, 200));
+
     const text = transcriptRef.current.trim();
     transcriptRef.current = "";
+    console.log("[orb] final transcript:", text || "(empty)");
     if (text) {
       await sendToAdvisor(text);
     } else {
@@ -194,8 +261,30 @@ export default function AnimatedOrb({ tasks, updateTask, addTasks, deleteTask, t
 
   return (
     <div
+      className="relative"
       style={{ animation: `fadeSlideUp 600ms ease-out ${delay}ms both` }}
     >
+      {/* Floating dialogue bubble — above the orb */}
+      {replyText && (
+        <div
+          className="absolute bottom-full left-1/2 -translate-x-1/2 mb-4 w-[280px] pointer-events-none"
+          style={{ animation: "fadeSlideUp 400ms ease-out" }}
+        >
+          <div className="rounded-xl bg-[#13161C]/95 backdrop-blur-md border border-[#1D9E75]/15 px-4 py-3 shadow-lg shadow-black/20">
+            <p className="font-sans text-[13px] text-[#E8EAF0]/80 leading-relaxed">
+              {replyText.slice(0, typedChars)}
+              {typedChars < replyText.length && (
+                <span className="inline-block w-[1.5px] h-[0.9em] bg-[#5DCAA5]/60 ml-[1px] align-middle" style={{ animation: "blink 1s step-end infinite" }} />
+              )}
+            </p>
+          </div>
+          {/* Arrow pointing down to orb */}
+          <div className="flex justify-center">
+            <div className="w-3 h-3 bg-[#13161C]/95 border-r border-b border-[#1D9E75]/15 rotate-45 -mt-1.5" />
+          </div>
+        </div>
+      )}
+
       <button
         onMouseDown={startRecording}
         onMouseUp={stopRecording}
@@ -225,7 +314,7 @@ export default function AnimatedOrb({ tasks, updateTask, addTasks, deleteTask, t
           transition: "filter 0.6s ease, opacity 0.6s ease",
         }} />
 
-        {/* Second glow layer — counter-rotating for organic feel */}
+        {/* Second glow layer — counter-rotating */}
         <div className="absolute inset-[-4px] rounded-full" style={{
           background: "conic-gradient(from 180deg, rgba(93,202,165,0.18), rgba(19,78,58,0.2), rgba(45,212,160,0.18), rgba(15,122,92,0.2), rgba(93,202,165,0.18))",
           filter: state === "loading"
