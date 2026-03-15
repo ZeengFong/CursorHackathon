@@ -104,20 +104,21 @@ export default function Sidebar({ mode, setMode, taskCount, voiceEnabled, setVoi
 
         {/* Mode nav */}
         <nav className="flex flex-col gap-0.5 flex-1">
-          {MODE_ITEMS.map((item) => (
+          {MODE_ITEMS.map((item, i) => (
             <button
               key={item.id}
               onClick={() => setMode(item.id)}
-              className={`relative flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-sans transition-all text-left ${
+              className={`relative flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-sans transition-all duration-200 text-left hover:-translate-y-px ${
                 mode === item.id
                   ? "bg-[#0D0F14]/60 text-[#E8EAF0]"
-                  : "text-[#A0A8B8]/50 hover:text-[#A0A8B8] hover:bg-[#0D0F14]/30"
+                  : "text-[#A0A8B8]/50 hover:text-[#A0A8B8] hover:bg-[#0D0F14]/40"
               }`}
+              style={{ animation: `fadeSlideUp 400ms ease-out ${i * 50}ms both` }}
             >
               {mode === item.id && (
-                <span className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-5 bg-[#1D9E75] rounded-full" />
+                <span className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-5 bg-[#1D9E75] rounded-full transition-all duration-200" />
               )}
-              <span className={`transition-colors ${mode === item.id ? "text-[#5DCAA5]" : ""}`}>
+              <span className={`transition-colors duration-200 ${mode === item.id ? "text-[#5DCAA5]" : ""}`}>
                 {item.icon}
               </span>
               {item.label}
@@ -146,7 +147,7 @@ export default function Sidebar({ mode, setMode, taskCount, voiceEnabled, setVoi
 
         {/* Bottom row: profile + settings */}
         <div className="flex items-center justify-between px-2 pt-3 border-t-2 border-[#1D9E75]/10">
-          <div className="w-7 h-7 rounded-full bg-[#1D9E75]/20 border-2 border-[#1D9E75]/30 flex items-center justify-center shrink-0">
+          <div className="w-7 h-7 rounded-full bg-[#1D9E75]/20 border-2 border-[#1D9E75]/30 hover:border-[#1D9E75]/40 flex items-center justify-center shrink-0 transition-colors duration-200">
             <span className="font-sans text-[10px] font-semibold text-[#5DCAA5]">{initials}</span>
           </div>
           <button

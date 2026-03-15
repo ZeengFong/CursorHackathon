@@ -20,6 +20,7 @@ function SkeletonSteps() {
         <div
           key={i}
           className="flex items-center gap-3 px-4 py-3 rounded-lg bg-[#13161C]"
+          style={{ animation: `fadeSlideUp 500ms ease-out ${i * 60}ms both` }}
         >
           <div className="w-4 h-4 shrink-0 rounded border-2 border-[#A0A8B8]/10 bg-[#0D0F14]" />
           <div
@@ -184,19 +185,19 @@ export default function FocusMode({ tasks }: Props) {
   }
 
   return (
-    <div className="p-6 sm:p-10 max-w-2xl mx-auto">
+    <div className="p-6 sm:p-8 sm:pl-10 sm:pr-20 max-w-2xl mx-auto" style={{ animation: "fadeSlideUp 600ms ease-out both" }}>
       {/* Active task */}
-      <div className="mb-10">
+      <div className="mb-10" style={{ animation: "fadeSlideUp 600ms ease-out both" }}>
         <p className="text-[10px] font-sans font-medium tracking-widest uppercase text-[#1D9E75] mb-3">
           In focus
         </p>
-        <h2 className="font-serif text-3xl sm:text-4xl text-[#E8EAF0] leading-snug">
+        <h2 className="font-serif text-3xl sm:text-4xl lg:text-[2.5rem] text-[#E8EAF0] leading-snug">
           {activeTask.text}
         </h2>
       </div>
 
       {/* Pomodoro */}
-      <div className="flex flex-col items-center mb-10">
+      <div className="flex flex-col items-center mb-10" style={{ animation: "fadeSlideUp 600ms ease-out 100ms both" }}>
 
         {/* Duration picker — only before timer starts */}
         {!timerStarted && (
@@ -238,8 +239,8 @@ export default function FocusMode({ tasks }: Props) {
           </p>
         )}
 
-        <div className="relative w-36 h-36">
-          <svg width={144} height={144} className="-rotate-90 absolute inset-0">
+        <div className="relative w-[120px] h-[120px] sm:w-36 sm:h-36">
+          <svg viewBox="0 0 144 144" className="-rotate-90 absolute inset-0 w-full h-full">
             <circle
               cx={72}
               cy={72}
@@ -282,13 +283,8 @@ export default function FocusMode({ tasks }: Props) {
         {/* Break overlay banners */}
         {isBreak && !isRunning && (
           <div
-            className="mt-4 px-4 py-3 rounded-xl border-2 text-center animate-fade-up"
-            style={{
-              background: "rgba(239,159,39,0.08)",
-              borderColor: "rgba(239,159,39,0.2)",
-              animationDuration: "0.4s",
-              animationFillMode: "both",
-            }}
+            className="mt-4 px-4 py-3 rounded-xl border-2 border-[#EF9F27]/20 bg-[#EF9F27]/8 text-center"
+            style={{ animation: "fadeSlideUp 400ms ease-out both" }}
           >
             <p className="font-serif italic text-[#EF9F27] text-base">
               30 minutes done. Take a breath.
@@ -316,7 +312,7 @@ export default function FocusMode({ tasks }: Props) {
           </div>
         )}
 
-        <div className="flex items-center gap-3 mt-5">
+        <div className="flex items-center gap-3 mt-5" style={{ animation: "fadeSlideUp 600ms ease-out 200ms both" }}>
           <button
             onClick={handleStartPause}
             disabled={timeLeft === 0 && !isBreak}

@@ -39,16 +39,13 @@ export default function MascotOrb({ nextActionText, onDismiss, speak }: Props) {
           `}
         >
           {/* Waveform — 3 bars animated at different delays */}
-          <div className="flex items-center gap-[3px]" style={{ height: "18px" }}>
+          <div className="flex items-center gap-[3px] h-[18px]">
             {[0, 200, 400].map((delay) => (
               <div
                 key={delay}
+                className="w-[3px] h-full rounded-sm origin-center"
                 style={{
-                  width: "3px",
-                  height: "100%",
                   background: isActive ? "#5DCAA5" : "rgba(29,158,117,0.55)",
-                  borderRadius: "2px",
-                  transformOrigin: "center",
                   animation: `wave-bar 0.85s ease-in-out ${delay}ms infinite alternate`,
                 }}
               />
@@ -67,6 +64,7 @@ export default function MascotOrb({ nextActionText, onDismiss, speak }: Props) {
               group-hover:opacity-100 group-hover:pointer-events-auto
               transition-opacity duration-150
             "
+            style={{ animation: 'scaleIn 150ms ease-out' }}
           >
             <p className="font-sans text-[13px] text-[#E8EAF0] leading-snug">
               {nextActionText}

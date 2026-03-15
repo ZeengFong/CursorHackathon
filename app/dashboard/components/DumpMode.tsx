@@ -96,27 +96,27 @@ export default function DumpMode({ onTasksAdded, onDone }: Props) {
   // ── Render ─────────────────────────────────────────────────────────
   if (phase === "done") {
     return (
-      <div className="p-6 sm:p-10 max-w-2xl mx-auto flex flex-col items-center justify-center min-h-[60vh]">
-        <p className="font-serif italic text-3xl text-[#5DCAA5]">
+      <div className="p-6 sm:p-8 sm:pl-10 sm:pr-20 max-w-[1200px] mx-auto flex flex-col items-center justify-center min-h-[60vh]" style={{ animation: "fadeSlideUp 600ms ease-out both" }}>
+        <p className="font-serif italic text-2xl sm:text-3xl lg:text-[2rem] text-[#5DCAA5]">
           {pendingTasks.length} task{pendingTasks.length !== 1 ? "s" : ""} added.
         </p>
-        <p className="mt-2 font-sans text-sm text-[#A0A8B8]/40">Heading to triage…</p>
+        <p className="mt-2 font-sans text-sm text-[#A0A8B8]/40" style={{ animation: "fadeSlideUp 600ms ease-out 100ms both" }}>Heading to triage…</p>
       </div>
     );
   }
 
   if (phase === "clarify") {
     return (
-      <div className="p-6 sm:p-10 max-w-2xl mx-auto">
+      <div className="p-6 sm:p-8 sm:pl-10 sm:pr-20 max-w-[1200px] mx-auto" style={{ animation: "fadeSlideUp 600ms ease-out both" }}>
         <div className="mb-8">
-          <h2 className="font-serif text-2xl text-[#E8EAF0]">One quick thing</h2>
+          <h2 className="font-serif text-2xl sm:text-3xl lg:text-[2rem] text-[#E8EAF0]">One quick thing</h2>
           <p className="mt-1 font-sans text-sm text-[#A0A8B8]/50">
             {pendingTasks.length > 0 && `Extracted ${pendingTasks.length} task${pendingTasks.length !== 1 ? "s" : ""} so far.`}
           </p>
         </div>
 
         {/* Clarifying question bubble */}
-        <div className="mb-6 rounded-xl bg-[#1A1E27] border-2 border-[#1D9E75]/20 px-5 py-4">
+        <div className="mb-6 rounded-xl bg-[#1A1E27] border-2 border-[#1D9E75]/20 px-5 py-4" style={{ animation: "fadeSlideUp 600ms ease-out 100ms both" }}>
           <p className="font-sans text-sm text-[#E8EAF0] leading-relaxed">{clarifyingQuestion}</p>
         </div>
 
@@ -150,9 +150,9 @@ export default function DumpMode({ onTasksAdded, onDone }: Props) {
 
   // phase === "dump"
   return (
-    <div className="p-6 sm:p-10 max-w-2xl mx-auto">
+    <div className="p-6 sm:p-8 sm:pl-10 sm:pr-20 max-w-[1200px] mx-auto" style={{ animation: "fadeSlideUp 600ms ease-out both" }}>
       <div className="mb-8">
-        <h2 className="font-serif text-2xl text-[#E8EAF0]">New dump</h2>
+        <h2 className="font-serif text-2xl sm:text-3xl lg:text-[2rem] text-[#E8EAF0]">New dump</h2>
         <p className="mt-1 font-sans text-sm text-[#A0A8B8]/50">
           What&apos;s swirling around right now? Let it out.
         </p>

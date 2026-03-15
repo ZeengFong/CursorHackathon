@@ -240,15 +240,15 @@ export default function DumpInput({
           disabled={loading || isRecording}
           placeholder={placeholder}
           rows={4}
-          style={{ minHeight: "120px", overflow: "hidden" }}
-          className="w-full resize-none bg-transparent font-sans text-[15px] text-[#E8EAF0] placeholder-[#A0A8B8]/35 leading-[1.8] outline-none border-none disabled:opacity-60"
+          className="w-full resize-none bg-transparent font-sans text-[15px] text-[#E8EAF0] placeholder-[#A0A8B8]/35 leading-[1.8] outline-none border-none disabled:opacity-60 min-h-[100px] sm:min-h-[120px] lg:min-h-[140px]"
+          style={{ overflow: "hidden" }}
         />
 
         {/* File chips */}
         {files.length > 0 && (
           <div className="flex flex-wrap gap-2 mt-3 pt-3 border-t-2 border-[#1D9E75]/10">
-            {files.map((f) => (
-              <span key={f.id} className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#0D0F14] border-2 border-[#1D9E75]/25 font-sans text-[11px] text-[#A0A8B8]">
+            {files.map((f, i) => (
+              <span key={f.id} className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#0D0F14] border-2 border-[#1D9E75]/25 font-sans text-[11px] text-[#A0A8B8]" style={{ animation: `fadeSlideUp 300ms ease-out ${i * 60}ms both` }}>
                 <span className="max-w-[140px] truncate">{f.name}</span>
                 <span className="text-[#A0A8B8]/40">{formatSize(f.size)}</span>
                 <button onClick={() => setFiles((p) => p.filter((x) => x.id !== f.id))} className="text-[#A0A8B8]/40 hover:text-[#E8EAF0] transition-colors">
@@ -267,7 +267,7 @@ export default function DumpInput({
               onClick={toggleRecording}
               disabled={loading}
               aria-label={isRecording ? "Stop" : "Voice input"}
-              className={`relative w-9 h-9 rounded-full border-2 flex items-center justify-center transition-colors disabled:opacity-40 ${
+              className={`relative w-9 h-9 rounded-full border-2 flex items-center justify-center transition-colors duration-200 disabled:opacity-40 ${
                 isRecording
                   ? "border-[#1D9E75] bg-[#1D9E75]/12 text-[#5DCAA5]"
                   : "border-white/10 text-[#A0A8B8]/60 hover:border-white/20 hover:text-[#A0A8B8]"

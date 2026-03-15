@@ -271,7 +271,7 @@ export default function SettingsPage() {
 
   return (
     <div className="min-h-screen bg-[#0D0F14]">
-      <div className="max-w-xl mx-auto px-5 py-10">
+      <div className="max-w-xl mx-auto p-6 sm:p-8 py-10">
 
         {/* Back link */}
         <button

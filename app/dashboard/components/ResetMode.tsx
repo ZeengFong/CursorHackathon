@@ -77,7 +77,7 @@ export default function ResetMode({ speak, voiceEnabled }: Props) {
   const phase = PHASES[phaseIndex];
 
   return (
-    <div className="p-6 sm:p-10 max-w-lg mx-auto">
+    <div className="p-6 sm:p-8 sm:pl-10 sm:pr-20 max-w-lg mx-auto" style={{ animation: "fadeSlideUp 600ms ease-out both" }}>
       <div className="mb-10">
         <h2 className="font-serif text-2xl text-[#E8EAF0]">Reset</h2>
         <p className="mt-1 font-sans text-sm text-[#A0A8B8]/50">
@@ -86,15 +86,15 @@ export default function ResetMode({ speak, voiceEnabled }: Props) {
       </div>
 
       {/* Breathing circle */}
-      <div className="flex flex-col items-center mb-12">
-        <div className="relative flex items-center justify-center w-40 h-40">
+      <div className="flex flex-col items-center mb-12" style={{ animation: "fadeSlideUp 600ms ease-out 100ms both" }}>
+        <div className="relative flex items-center justify-center w-32 h-32 sm:w-40 sm:h-40 lg:w-48 lg:h-48">
           <div className="animate-breathe absolute inset-0 rounded-full bg-[#1D9E75]/6" />
           <div
-            className="animate-breathe absolute w-32 h-32 rounded-full border-2 border-[#1D9E75]/25 bg-[#1D9E75]/10"
+            className="animate-breathe absolute w-24 h-24 sm:w-32 sm:h-32 lg:w-36 lg:h-36 rounded-full border-2 border-[#1D9E75]/25 bg-[#1D9E75]/10"
             style={{ animationDelay: "0.4s" }}
           />
           <div
-            className="animate-breathe w-20 h-20 rounded-full bg-[#1D9E75]/20 flex items-center justify-center"
+            className="animate-breathe w-16 h-16 sm:w-20 sm:h-20 lg:w-24 lg:h-24 rounded-full bg-[#1D9E75]/20 flex items-center justify-center"
             style={{ animationDelay: "0.8s" }}
           >
             <div className="w-3 h-3 rounded-full bg-[#5DCAA5]/70" />
@@ -143,12 +143,9 @@ export default function ResetMode({ speak, voiceEnabled }: Props) {
             style={{ animationDuration: '0.6s', animationFillMode: 'both' }}
           >
             {/* Decorative top line */}
-            <div
-              className="w-8 h-px mx-auto mb-5"
-              style={{ background: 'rgba(29,158,117,0.25)' }}
-            />
+            <div className="w-8 h-px mx-auto mb-5 bg-[#1D9E75]/25" />
 
-            <p className="font-serif italic text-[1.05rem] leading-[1.75] text-[#D8DAEA]">
+            <p className="font-serif italic text-base sm:text-[1.05rem] leading-[1.75] text-[#D8DAEA]">
               &ldquo;{quote.content}&rdquo;
             </p>
 
@@ -159,7 +156,7 @@ export default function ResetMode({ speak, voiceEnabled }: Props) {
             {/* Refresh button */}
             <button
               onClick={fetchQuote}
-              className="mt-5 inline-flex items-center gap-1.5 font-sans text-[11px] text-[#A0A8B8]/35 hover:text-[#5DCAA5] transition-colors duration-200"
+              className="mt-5 inline-flex items-center gap-1.5 font-sans text-[11px] text-[#A0A8B8]/35 hover:text-[#5DCAA5] hover:bg-[#1D9E75]/8 px-2 py-1 rounded-lg transition-colors duration-200"
               aria-label="Load another quote"
             >
               <svg

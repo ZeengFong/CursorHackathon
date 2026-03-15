@@ -335,7 +335,7 @@ export default function Dashboard() {
       {/* Main content */}
       <main className="flex-1 overflow-y-auto pb-16 sm:pb-0 relative">
         {restoredBanner && (
-          <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 bg-[#1D9E75]/10 border-2 border-[#1D9E75]/30 text-[#5DCAA5] font-sans text-sm px-4 py-2 rounded-full pointer-events-none">
+          <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 bg-[#1D9E75]/10 border-2 border-[#1D9E75]/30 text-[#5DCAA5] font-sans text-sm px-4 py-2 rounded-full pointer-events-none" style={{ animation: "fadeSlideUp 400ms ease-out both" }}>
             Your dump was saved — welcome back
           </div>
         )}
@@ -385,7 +385,7 @@ export default function Dashboard() {
           <button
             key={item.id}
             onClick={() => setMode(item.id)}
-            className={`flex-1 py-3 flex flex-col items-center gap-1 transition-colors ${
+            className={`flex-1 py-3 flex flex-col items-center gap-1 transition-colors duration-150 ${
               mode === item.id ? "text-[#5DCAA5]" : "text-[#A0A8B8]/40"
             }`}
           >

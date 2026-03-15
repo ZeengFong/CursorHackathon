@@ -137,11 +137,11 @@ export default function CalendarMode({ tasks, updateTask }: Props) {
   );
 
   return (
-    <div className="p-6 sm:p-8 max-w-5xl mx-auto">
+    <div className="p-6 sm:p-8 sm:pl-10 sm:pr-20 max-w-[1200px] mx-auto" style={{ animation: "fadeSlideUp 600ms ease-out both" }}>
       {/* Title — centred over calendar column only */}
       <div className="max-w-[660px]">
         <div className="text-center mb-10">
-          <h2 className="font-serif text-[28px] text-[#E8EAF0]">Calendar</h2>
+          <h2 className="font-serif text-[24px] sm:text-[28px] lg:text-[32px] text-[#E8EAF0]">Calendar</h2>
           <p className="mt-1 font-sans text-[14px] text-[#A0A8B8]/50">
             Dates parsed automatically from task text
           </p>
@@ -173,8 +173,8 @@ export default function CalendarMode({ tasks, updateTask }: Props) {
         <div className="flex-1 min-w-0 max-w-[660px]">
           {/* Day-name row */}
           <div className="grid grid-cols-7 mb-1">
-            {DAY_NAMES.map((d) => (
-              <div key={d} className="text-center font-sans text-[12px] font-medium tracking-widest uppercase text-[#A0A8B8]/35 py-1">
+            {DAY_NAMES.map((d, i) => (
+              <div key={d} className="text-center font-sans text-[12px] font-medium tracking-widest uppercase text-[#A0A8B8]/35 py-1" style={{ animation: `slideInLeft 400ms ease-out ${i * 40}ms both` }}>
                 {d}
               </div>
             ))}
@@ -184,7 +184,7 @@ export default function CalendarMode({ tasks, updateTask }: Props) {
           <div className="grid grid-cols-7 gap-px bg-[#1D9E75]/6 rounded-xl overflow-hidden border-2 border-[#1D9E75]/8">
             {cells.map((day, idx) => {
               if (day === null) {
-                return <div key={`empty-${idx}`} className="bg-[#0D0F14] h-[72px] sm:h-[88px]" />;
+                return <div key={`empty-${idx}`} className="bg-[#0D0F14] h-[72px] sm:h-[88px] lg:h-[96px]" />;
               }
               const key = cellKey(day);
               const dayTasks = tasksByDate.get(key) ?? [];
@@ -193,7 +193,7 @@ export default function CalendarMode({ tasks, updateTask }: Props) {
               return (
                 <div
                   key={key}
-                  className={`bg-[#0D0F14] h-[72px] sm:h-[88px] p-1.5 flex flex-col relative ${
+                  className={`bg-[#0D0F14] h-[72px] sm:h-[88px] lg:h-[96px] p-1.5 flex flex-col relative hover:bg-[#1D9E75]/4 transition-colors duration-150 ${
                     today_ ? "ring-1 ring-inset ring-[#1D9E75]/50" : ""
                   }`}
                 >
@@ -218,7 +218,7 @@ export default function CalendarMode({ tasks, updateTask }: Props) {
                           style={{ backgroundColor: CATEGORY_COLOR[t.category] }}
                         />
                         {tooltipTaskId === t.id && (
-                          <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 z-20 w-44 bg-[#13161C] border-2 border-[#1D9E75]/25 rounded-lg px-2.5 py-2 shadow-lg pointer-events-none">
+                          <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 z-20 w-44 bg-[#13161C] border-2 border-[#1D9E75]/25 rounded-lg px-2.5 py-2 shadow-lg pointer-events-none" style={{ animation: "scaleIn 150ms ease-out both" }}>
                             <p className="font-sans text-[13px] text-[#E8EAF0] leading-snug">
                               {t.text}
                             </p>
@@ -243,7 +243,7 @@ export default function CalendarMode({ tasks, updateTask }: Props) {
         </div>
 
         {/* Upcoming tasks — right column */}
-        <div className="w-52 shrink-0">
+        <div className="hidden sm:block w-52 shrink-0">
           {upcomingTasks.length > 0 ? (
             <>
               {/* "Upcoming" label aligns with day-name row */}

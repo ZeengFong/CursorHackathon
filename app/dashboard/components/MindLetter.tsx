@@ -95,39 +95,30 @@ export default function MindLetter({ tasks, onClose }: MindLetterProps) {
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4"
-      style={{ background: 'rgba(10,12,16,0.92)', backdropFilter: 'blur(8px)' }}
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#0A0C10]/92 backdrop-blur-sm"
       onClick={onClose}
     >
       <div
-        className="relative max-w-lg w-full rounded-2xl p-8"
-        style={{
-          background: '#13161C',
-          border: '2px solid rgba(29,158,117,0.2)',
-          animation: 'fadeSlideUp 300ms ease-out forwards',
-        }}
+        className="relative max-w-lg w-full rounded-2xl p-8 bg-[#13161C] border-2 border-[#1D9E75]/20"
+        style={{ animation: 'scaleIn 250ms ease-out both' }}
         onClick={e => e.stopPropagation()}
       >
         {/* Close button */}
         <button
           onClick={onClose}
-          className="absolute top-4 right-4 w-7 h-7 flex items-center justify-center rounded-md text-[#A0A8B8] hover:text-[#E8EAF0] transition-colors duration-150"
-          style={{ background: 'rgba(255,255,255,0.06)' }}
+          className="absolute top-4 right-4 w-7 h-7 flex items-center justify-center rounded-md text-[#A0A8B8] hover:text-[#E8EAF0] bg-white/6 transition-colors duration-150"
           aria-label="Close"
         >
           ×
         </button>
 
         {/* Eyebrow */}
-        <p
-          className="font-sans text-[10px] font-medium tracking-[0.1em] uppercase mb-1"
-          style={{ color: 'rgba(93,202,165,0.7)' }}
-        >
+        <p className="font-sans text-[10px] font-medium tracking-[0.1em] uppercase mb-1 text-[#5DCAA5]/70">
           Your mind letter
         </p>
 
         {/* Divider */}
-        <div className="h-px mb-5" style={{ background: 'rgba(29,158,117,0.1)' }} />
+        <div className="h-px mb-5 bg-[#1D9E75]/10" />
 
         {/* Letter body */}
         <div className="min-h-[120px]">
@@ -136,11 +127,11 @@ export default function MindLetter({ tasks, onClose }: MindLetterProps) {
               {[100, 85, 92, 78, 60].map((w, i) => (
                 <div
                   key={i}
-                  className="h-4 rounded animate-pulse"
+                  className="h-4 rounded animate-pulse bg-[#1D9E75]/8"
                   style={{
                     width: `${w}%`,
-                    background: 'rgba(29,158,117,0.08)',
                     animationDelay: `${i * 80}ms`,
+                    animation: `fadeSlideUp 500ms ease-out ${i * 60}ms both, pulse 2s cubic-bezier(0.4,0,0.6,1) infinite`,
                   }}
                 />
               ))}
@@ -148,16 +139,13 @@ export default function MindLetter({ tasks, onClose }: MindLetterProps) {
           )}
 
           {error && (
-            <p className="font-sans text-sm" style={{ color: 'rgba(224,75,74,0.8)' }}>
+            <p className="font-sans text-sm text-[#E04B4A]/80">
               {error}
             </p>
           )}
 
           {!loading && !error && (
-            <p
-              className="font-serif whitespace-pre-wrap leading-[1.8]"
-              style={{ fontSize: '1.05rem', color: '#D8DAEA' }}
-            >
+            <p className="font-serif whitespace-pre-wrap leading-[1.8] text-base sm:text-[1.05rem] lg:text-lg text-[#D8DAEA]">
               {letter}
               {streaming && (
                 <span
@@ -174,24 +162,13 @@ export default function MindLetter({ tasks, onClose }: MindLetterProps) {
 
         {/* Footer */}
         <div className="mt-6 flex justify-between items-center">
-          <p className="font-sans text-[11px]" style={{ color: 'rgba(160,168,184,0.4)' }}>
+          <p className="font-sans text-[11px] text-[#A0A8B8]/40">
             Press Esc or click outside to close
           </p>
           {!loading && !streaming && !error && (
             <button
               onClick={onClose}
-              className="font-sans text-sm px-4 py-1.5 rounded-lg transition-colors duration-150"
-              style={{
-                color: '#A0A8B8',
-                border: '2px solid rgba(255,255,255,0.08)',
-                background: 'transparent',
-              }}
-              onMouseEnter={e => {
-                (e.target as HTMLElement).style.background = 'rgba(255,255,255,0.04)'
-              }}
-              onMouseLeave={e => {
-                (e.target as HTMLElement).style.background = 'transparent'
-              }}
+              className="font-sans text-sm px-4 py-1.5 rounded-lg text-[#A0A8B8] border-2 border-white/8 bg-transparent hover:bg-white/4 transition-colors duration-150"
             >
               Close
             </button>

@@ -283,7 +283,7 @@ function DraggableTaskCard({
       {...attributes}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
-      className="relative rounded-lg bg-[#13161C] border-2 px-4 py-3.5 outline-none focus-visible:ring-1 focus-visible:ring-[#1D9E75]/50 select-none touch-none"
+      className="relative rounded-lg bg-[#13161C] border-2 px-4 py-3.5 outline-none focus-visible:ring-1 focus-visible:ring-[#1D9E75]/50 select-none touch-none hover:-translate-y-0.5 transition-transform duration-150"
       style={style}
     >
       <div className="flex items-start gap-1 flex-wrap">
@@ -802,7 +802,7 @@ export default function TriageMode({ tasks, updateTask, addTasks, deleteTask, on
   };
 
   return (
-    <div className="p-6 sm:p-8">
+    <div className="p-6 sm:p-8 sm:pl-10 sm:pr-20" style={{ animation: "fadeSlideUp 600ms ease-out both" }}>
       {/* Header row */}
       <div
         className="mb-7 flex items-start justify-between gap-4 transition-all duration-500 ease-out"
@@ -810,7 +810,7 @@ export default function TriageMode({ tasks, updateTask, addTasks, deleteTask, on
       >
         <div className={`transition-all duration-500 ease-out ${isFocused ? "text-center" : ""}`}>
           <h2
-            className="font-serif text-2xl cursor-pointer select-none transition-colors duration-400"
+            className="font-serif text-2xl sm:text-3xl cursor-pointer select-none transition-colors duration-400"
             style={{ color: isFocused ? "#1D9E75" : "#E8EAF0" }}
             onClick={() => setIsFocused((f) => !f)}
           >
