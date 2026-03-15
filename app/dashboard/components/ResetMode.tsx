@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import { supabase } from "@/lib/supabase";
 
 const PHASES = [
   { label: "Inhale",  seconds: 4 },
@@ -41,17 +42,26 @@ export default function ResetMode({ speak, voiceEnabled }: Props) {
     setQuoteLoading(true);
     setQuoteError(false);
     try {
-      const res = await fetch(
-        'https://api.realinspire.live/v1/quotes/random?minLength=60&maxLength=140',
-        { cache: 'no-store' }
-      );
-      if (!res.ok) throw new Error('Failed');
-      const data = await res.json();
-      const q = Array.isArray(data) ? data[0] : data;
-      if (q?.content && q?.author) {
-        setQuote({ content: q.content, author: q.author });
+      const { data, error } = await supabase
+        .from("Quotes")
+        .select("Quote, Author")
+        .limit(1)
+        .order("Quote", { ascending: false })          // needed so .limit applies server-side
+        .range(Math.floor(Math.random() * 1664), Math.floor(Math.random() * 1664)); // random offset
+
+      // fallback: pick via raw rpc if range trick returns empty
+      let row = data?.[0];
+      if (!row || error) {
+        // simpler fallback: just grab any one
+        const fb = await supabase.from("Quotes").select("Quote, Author").limit(100);
+        const arr = fb.data ?? [];
+        row = arr[Math.floor(Math.random() * arr.length)];
+      }
+
+      if (row?.Quote) {
+        setQuote({ content: row.Quote, author: row.Author ?? "Who knows?" });
       } else {
-        throw new Error('Invalid shape');
+        throw new Error("No quote returned");
       }
     } catch {
       setQuoteError(true);

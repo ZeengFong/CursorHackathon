@@ -3,6 +3,18 @@
 import { useState, useRef, useMemo, useEffect } from "react";
 import type { Task } from "../page";
 import { MicIcon } from "@/app/components/ui/mic";
+import {
+  DndContext,
+  DragOverlay,
+  PointerSensor,
+  TouchSensor,
+  useSensor,
+  useSensors,
+  useDroppable,
+  useDraggable,
+  closestCenter,
+} from "@dnd-kit/core";
+import type { DragStartEvent, DragOverEvent, DragEndEvent } from "@dnd-kit/core";
 
 interface Props {
   tasks: Task[];
@@ -11,12 +23,6 @@ interface Props {
   deleteTask: (id: string) => void;
   onOpenLetter: () => void;
 }
-
-const CYCLE: Record<Task["category"], Task["category"]> = {
-  now: "later",
-  later: "drop",
-  drop: "now",
-};
 
 const SOURCE_STYLE: Record<string, { label: string; color: string }> = {
   voice: { label: "voice", color: "#5DCAA5" },
@@ -228,13 +234,264 @@ function DatePickerPopup({ value, onChange, onClose, anchorRef }: {
   );
 }
 
+// ── Draggable task card ──────────────────────────────────────────────
+function DraggableTaskCard({
+  task,
+  allowOverdue,
+  isHighlighted,
+  isDragActive,
+  onMarkDone,
+  onDateChange,
+  calendarId,
+  setCalendarId,
+  dateButtonRefs,
+}: {
+  task: Task;
+  allowOverdue?: boolean;
+  isHighlighted: boolean;
+  isDragActive: boolean;
+  onMarkDone: (id: string) => void;
+  onDateChange: (id: string, iso: string) => void;
+  calendarId: string | null;
+  setCalendarId: (id: string | null) => void;
+  dateButtonRefs: React.RefObject<Map<string, HTMLButtonElement>>;
+}) {
+  const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
+    id: task.id,
+    data: { task },
+  });
+
+  const [isHovered, setIsHovered] = useState(false);
+  const src = SOURCE_STYLE[task.source] ?? SOURCE_STYLE.typed;
+
+  const style: React.CSSProperties = {
+    transform: transform ? `translate(${transform.x}px, ${transform.y}px)` : undefined,
+    opacity: isDragging ? 0.35 : 1,
+    zIndex: isDragging ? 50 : undefined,
+    cursor: isDragActive ? (isDragging ? "grabbing" : "grab") : "grab",
+    borderColor: isHighlighted ? "#5DCAA5" : "rgba(29,158,117,0.08)",
+    boxShadow: isHighlighted ? "0 0 0 1px #5DCAA540" : isDragging ? "0 8px 32px rgba(0,0,0,0.4)" : undefined,
+    transition: isDragging ? "none" : "opacity 200ms ease, box-shadow 200ms ease, border-color 200ms ease",
+  };
+
+  return (
+    <div
+      ref={setNodeRef}
+      {...listeners}
+      {...attributes}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+      className="relative rounded-lg bg-[#13161C] border px-4 py-3.5 outline-none focus-visible:ring-1 focus-visible:ring-[#1D9E75]/50 select-none touch-none"
+      style={style}
+    >
+      <div className="flex items-start gap-1 flex-wrap">
+        <p className="font-sans text-sm text-[#E8EAF0] leading-snug flex-1">{task.text}</p>
+        {task.due_date && (
+          <DeadlineBadge due_date={task.due_date} allowOverdue={allowOverdue} />
+        )}
+      </div>
+
+      <div className="mt-2.5 flex items-center justify-between gap-2">
+        <span
+          className="text-[9px] font-sans font-medium px-1.5 py-0.5 rounded uppercase tracking-wider"
+          style={{ color: src.color, backgroundColor: src.color + "18" }}
+        >
+          {src.label}
+        </span>
+
+        {isHovered && !isDragging && (
+          <div
+            className="flex items-center gap-1.5"
+            onPointerDown={(e) => e.stopPropagation()}
+          >
+            <button
+              ref={(el) => { if (el) dateButtonRefs.current.set(task.id, el); }}
+              onClick={() => setCalendarId(calendarId === task.id ? null : task.id)}
+              className="text-[10px] font-sans text-[#A0A8B8]/40 hover:text-[#5DCAA5] transition-colors px-1.5 py-0.5 rounded hover:bg-[#1D9E75]/8"
+            >
+              + date
+            </button>
+            {calendarId === task.id && (
+              <DatePickerPopup
+                value={task.due_date}
+                onChange={(iso) => {
+                  onDateChange(task.id, iso);
+                  setCalendarId(null);
+                }}
+                onClose={() => setCalendarId(null)}
+                anchorRef={{ current: dateButtonRefs.current.get(task.id) ?? null }}
+              />
+            )}
+            <button
+              onClick={() => onMarkDone(task.id)}
+              className="text-[10px] font-sans text-[#A0A8B8]/40 hover:text-[#5DCAA5] transition-colors px-2 py-0.5 rounded hover:bg-[#1D9E75]/8"
+            >
+              Mark done
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ── Ghost card for drag overlay ─────────────────────────────────────
+function TaskDragOverlay({ task }: { task: Task }) {
+  const src = SOURCE_STYLE[task.source] ?? SOURCE_STYLE.typed;
+
+  return (
+    <div
+      className="rounded-lg bg-[#13161C] border border-[#5DCAA5]/30 px-4 py-3.5 pointer-events-none"
+      style={{
+        boxShadow: "0 12px 40px rgba(0,0,0,0.5), 0 0 0 1px rgba(93,202,165,0.2)",
+        transform: "scale(1.03) rotate(-1deg)",
+        width: 320,
+      }}
+    >
+      <div className="flex items-start gap-1 flex-wrap">
+        <p className="font-sans text-sm text-[#E8EAF0] leading-snug flex-1">{task.text}</p>
+        {task.due_date && <DeadlineBadge due_date={task.due_date} />}
+      </div>
+      <div className="mt-2.5">
+        <span
+          className="text-[9px] font-sans font-medium px-1.5 py-0.5 rounded uppercase tracking-wider"
+          style={{ color: src.color, backgroundColor: src.color + "18" }}
+        >
+          {src.label}
+        </span>
+      </div>
+    </div>
+  );
+}
+
+// ── Droppable column ────────────────────────────────────────────────
+type ColumnId = "now" | "later" | "drop";
+
+const COLUMN_CONFIG: Record<ColumnId, { label: string; color: string; dot: string }> = {
+  now:   { label: "Do now",   color: "#1D9E75", dot: "bg-[#1D9E75]" },
+  later: { label: "Do later", color: "#EF9F27", dot: "bg-[#EF9F27]" },
+  drop:  { label: "Drop",     color: "#A0A8B8", dot: "bg-[#A0A8B8]" },
+};
+
+function DroppableColumn({
+  id,
+  tasks,
+  subtitle,
+  emptyText,
+  allowOverdue,
+  isOver,
+  isDragActive,
+  highlightColor,
+  showWarning,
+  highlightedIds,
+  onMarkDone,
+  onDateChange,
+  calendarId,
+  setCalendarId,
+  dateButtonRefs,
+}: {
+  id: ColumnId;
+  tasks: Task[];
+  subtitle: string;
+  emptyText: string;
+  allowOverdue?: boolean;
+  isOver: boolean;
+  isDragActive: boolean;
+  highlightColor: "green" | "red";
+  showWarning: boolean;
+  highlightedIds: Set<string>;
+  onMarkDone: (id: string) => void;
+  onDateChange: (id: string, iso: string) => void;
+  calendarId: string | null;
+  setCalendarId: (id: string | null) => void;
+  dateButtonRefs: React.RefObject<Map<string, HTMLButtonElement>>;
+}) {
+  const { setNodeRef } = useDroppable({ id });
+  const config = COLUMN_CONFIG[id];
+
+  const overlayBg =
+    highlightColor === "red"
+      ? "rgba(239, 68, 68, 0.5)"
+      : "rgba(29, 158, 117, 0.5)";
+
+  return (
+    <div
+      ref={setNodeRef}
+      className="relative rounded-xl p-3 transition-all duration-200"
+      style={{
+        background: isOver ? overlayBg : "transparent",
+        outline: isOver
+          ? `2px solid ${highlightColor === "red" ? "rgba(239,68,68,0.6)" : "rgba(29,158,117,0.6)"}`
+          : "2px solid transparent",
+        outlineOffset: -2,
+        minHeight: 160,
+      }}
+    >
+      {/* Procrastination warning */}
+      {isOver && showWarning && (
+        <div
+          className="absolute -top-9 left-1/2 -translate-x-1/2 whitespace-nowrap font-sans text-[11px] font-semibold tracking-wide px-3 py-1.5 rounded-lg z-10"
+          style={{
+            background: "rgba(239,68,68,0.85)",
+            color: "#fff",
+            boxShadow: "0 4px 16px rgba(239,68,68,0.3)",
+            animation: "fadeSlideUp 150ms ease-out",
+          }}
+        >
+          Procrastination, really?
+        </div>
+      )}
+
+      <div className="flex items-center gap-2 mb-1">
+        <span className={`w-1.5 h-1.5 rounded-full ${config.dot}`} />
+        <span
+          className="font-sans text-[11px] font-semibold tracking-widest uppercase"
+          style={{ color: config.color }}
+        >
+          {config.label}
+        </span>
+        <span className="ml-auto font-sans text-xs text-[#A0A8B8]/30">{tasks.length}</span>
+      </div>
+      <p className="font-sans text-[11px] text-[#A0A8B8]/40 mb-3">{subtitle}</p>
+      <div className="flex flex-col gap-2 min-h-[80px]">
+        {tasks.length === 0 ? (
+          <p className="py-8 text-center font-sans text-xs text-[#A0A8B8]/20 italic">{emptyText}</p>
+        ) : (
+          tasks.map((t) => (
+            <DraggableTaskCard
+              key={t.id}
+              task={t}
+              allowOverdue={allowOverdue}
+              isHighlighted={highlightedIds.has(t.id)}
+              isDragActive={isDragActive}
+              onMarkDone={onMarkDone}
+              onDateChange={onDateChange}
+              calendarId={calendarId}
+              setCalendarId={setCalendarId}
+              dateButtonRefs={dateButtonRefs}
+            />
+          ))
+        )}
+      </div>
+    </div>
+  );
+}
+
 // ── Main component ──────────────────────────────────────────────────
 export default function TriageMode({ tasks, updateTask, addTasks, deleteTask, onOpenLetter }: Props) {
-  const [hoveredId, setHoveredId]           = useState<string | null>(null);
   const [exitingIds, setExitingIds]         = useState<Set<string>>(new Set());
   const [calendarId, setCalendarId]         = useState<string | null>(null);
   const [highlightedIds, setHighlightedIds] = useState<Set<string>>(new Set());
   const dateButtonRefs = useRef<Map<string, HTMLButtonElement>>(new Map());
+
+  // ── Drag state ──────────────────────────────────────────────────
+  const [activeTask, setActiveTask]     = useState<Task | null>(null);
+  const [overColumnId, setOverColumnId] = useState<ColumnId | null>(null);
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 150, tolerance: 5 } }),
+  );
 
   const visibleTasks = tasks.filter((t) => t.status !== "done");
 
@@ -260,97 +517,85 @@ export default function TriageMode({ tasks, updateTask, addTasks, deleteTask, on
   };
 
   // ── Derived task lists ────────────────────────────────────────────
-  const allNowSorted   = sortTasks(visibleTasks.filter((t) => t.category === "now"));
-  const allLaterSorted = sortTasks(visibleTasks.filter((t) => t.category === "later"));
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const tomorrowEnd = new Date(today);
+  tomorrowEnd.setDate(tomorrowEnd.getDate() + 2);
+
+  const isUrgent = (t: Task) => {
+    if (!t.due_date) return false;
+    const d = new Date(t.due_date + "T00:00:00");
+    return d.getTime() >= today.getTime() && d.getTime() < tomorrowEnd.getTime();
+  };
+
+  const urgentFromOther = visibleTasks.filter((t) => t.category !== "now" && isUrgent(t));
+  const allNowSorted   = sortTasks([
+    ...visibleTasks.filter((t) => t.category === "now"),
+    ...urgentFromOther,
+  ]);
+  const urgentIds = new Set(urgentFromOther.map((t) => t.id));
+  const allLaterSorted = sortTasks(visibleTasks.filter((t) => t.category === "later" && !urgentIds.has(t.id)));
 
   const nowTasks    = allNowSorted.slice(0, 3);
   const nowOverflow = allNowSorted.slice(3);
   const laterTasks  = [...nowOverflow, ...allLaterSorted].slice(0, 10);
-  const dropTasks   = sortTasks(visibleTasks.filter((t) => t.category === "drop"));
+  const dropTasks   = sortTasks(visibleTasks.filter((t) => t.category === "drop" && !urgentIds.has(t.id)));
 
-  // ── Task card renderer ────────────────────────────────────────────
-  const renderTask = (task: Task, allowOverdue = false) => {
-    const isExiting     = exitingIds.has(task.id);
-    const isHighlighted = highlightedIds.has(task.id);
-    const src = SOURCE_STYLE[task.source] ?? SOURCE_STYLE.typed;
+  // ── Which column does a task currently appear in? ─────────────────
+  const getDisplayColumn = (taskId: string): ColumnId | null => {
+    if (nowTasks.some((t) => t.id === taskId)) return "now";
+    if (laterTasks.some((t) => t.id === taskId)) return "later";
+    if (dropTasks.some((t) => t.id === taskId)) return "drop";
+    return null;
+  };
 
-    return (
-      <div
-        key={task.id}
-        style={{
-          maxHeight: isExiting ? "0px" : "200px",
-          opacity: isExiting ? 0 : 1,
-          overflow: "hidden",
-          transition: "max-height 280ms ease, opacity 200ms ease",
-          marginBottom: isExiting ? 0 : undefined,
-        }}
-      >
-        <div
-          role="button"
-          tabIndex={0}
-          onClick={() => updateTask(task.id, { category: CYCLE[task.category] })}
-          onKeyDown={(e) => {
-            if (e.key === "Enter" || e.key === " ")
-              updateTask(task.id, { category: CYCLE[task.category] });
-          }}
-          onMouseEnter={() => setHoveredId(task.id)}
-          onMouseLeave={() => { setHoveredId(null); }}
-          className="relative cursor-pointer rounded-lg bg-[#13161C] border px-4 py-3.5 transition-all outline-none focus-visible:ring-1 focus-visible:ring-[#1D9E75]/50"
-          style={{
-            borderColor: isHighlighted ? "#5DCAA5" : "rgba(29,158,117,0.08)",
-            boxShadow: isHighlighted ? "0 0 0 1px #5DCAA540" : undefined,
-          }}
-        >
-          <div className="flex items-start gap-1 flex-wrap">
-            <p className="font-sans text-sm text-[#E8EAF0] leading-snug flex-1">{task.text}</p>
-            {task.due_date && (
-              <DeadlineBadge due_date={task.due_date} allowOverdue={allowOverdue} />
-            )}
-          </div>
+  // ── Is the active drag an urgent task leaving "now"? ──────────────
+  const isDraggingUrgentOutOfNow =
+    activeTask != null &&
+    isUrgent(activeTask) &&
+    overColumnId != null &&
+    overColumnId !== "now";
 
-          <div className="mt-2.5 flex items-center justify-between gap-2">
-            {/* Source badge */}
-            <span
-              className="text-[9px] font-sans font-medium px-1.5 py-0.5 rounded uppercase tracking-wider"
-              style={{ color: src.color, backgroundColor: src.color + "18" }}
-            >
-              {src.label}
-            </span>
+  // ── Drag handlers ─────────────────────────────────────────────────
+  const handleDragStart = (event: DragStartEvent) => {
+    const task = (event.active.data.current as { task: Task } | undefined)?.task ?? null;
+    setActiveTask(task);
+  };
 
-            {hoveredId === task.id && (
-              <div className="flex items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
-                {/* Add to calendar */}
-                <button
-                  ref={(el) => { if (el) dateButtonRefs.current.set(task.id, el); }}
-                  onClick={() => setCalendarId(calendarId === task.id ? null : task.id)}
-                  className="text-[10px] font-sans text-[#A0A8B8]/40 hover:text-[#5DCAA5] transition-colors px-1.5 py-0.5 rounded hover:bg-[#1D9E75]/8"
-                >
-                  + date
-                </button>
-                {calendarId === task.id && (
-                  <DatePickerPopup
-                    value={task.due_date}
-                    onChange={(iso) => {
-                      updateTask(task.id, { due_date: iso });
-                      setCalendarId(null);
-                    }}
-                    onClose={() => setCalendarId(null)}
-                    anchorRef={{ current: dateButtonRefs.current.get(task.id) ?? null }}
-                  />
-                )}
+  const handleDragOver = (event: DragOverEvent) => {
+    const overId = event.over?.id as ColumnId | undefined;
+    setOverColumnId(overId ?? null);
+  };
 
-                <button
-                  onClick={() => markDone(task.id)}
-                  className="text-[10px] font-sans text-[#A0A8B8]/40 hover:text-[#5DCAA5] transition-colors px-2 py-0.5 rounded hover:bg-[#1D9E75]/8"
-                >
-                  Mark done
-                </button>
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
-    );
+  const handleDragEnd = (event: DragEndEvent) => {
+    const overId = event.over?.id as ColumnId | undefined;
+    if (activeTask && overId) {
+      const currentCol = getDisplayColumn(activeTask.id);
+      if (currentCol && overId !== currentCol) {
+        updateTask(activeTask.id, { category: overId });
+      }
+    }
+    setActiveTask(null);
+    setOverColumnId(null);
+  };
+
+  const handleDragCancel = () => {
+    setActiveTask(null);
+    setOverColumnId(null);
+  };
+
+  // ── Column highlight logic ────────────────────────────────────────
+  const getColumnHighlight = (colId: ColumnId) => {
+    if (!activeTask || overColumnId !== colId) return { isOver: false, highlightColor: "green" as const, showWarning: false };
+
+    const currentCol = getDisplayColumn(activeTask.id);
+    if (colId === currentCol) return { isOver: false, highlightColor: "green" as const, showWarning: false };
+
+    if (isUrgent(activeTask) && colId !== "now") {
+      return { isOver: true, highlightColor: "red" as const, showWarning: true };
+    }
+
+    return { isOver: true, highlightColor: "green" as const, showWarning: false };
   };
 
   return (
@@ -360,7 +605,7 @@ export default function TriageMode({ tasks, updateTask, addTasks, deleteTask, on
         <div>
           <h2 className="font-serif text-2xl text-[#E8EAF0]">Triage</h2>
           <p className="mt-1 font-sans text-xs text-[#A0A8B8]/50">
-            Click a card to cycle it · hover to mark done
+            Drag cards between columns · hover to mark done
           </p>
         </div>
 
@@ -374,71 +619,69 @@ export default function TriageMode({ tasks, updateTask, addTasks, deleteTask, on
         />
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
+      <DndContext
+        sensors={sensors}
+        collisionDetection={closestCenter}
+        onDragStart={handleDragStart}
+        onDragOver={handleDragOver}
+        onDragEnd={handleDragEnd}
+        onDragCancel={handleDragCancel}
+      >
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
+          <DroppableColumn
+            id="now"
+            tasks={nowTasks}
+            subtitle={`${nowTasks.length} closest deadline${nowTasks.length !== 1 ? "s" : ""}${allNowSorted.length > 3 ? ` · ${allNowSorted.length - 3} more in Later` : ""}`}
+            emptyText="All clear here."
+            allowOverdue
+            {...getColumnHighlight("now")}
+            isDragActive={activeTask != null}
+            highlightedIds={highlightedIds}
+            onMarkDone={markDone}
+            onDateChange={(id, iso) => updateTask(id, { due_date: iso })}
+            calendarId={calendarId}
+            setCalendarId={setCalendarId}
+            dateButtonRefs={dateButtonRefs}
+          />
 
-        {/* ── Do now ───────────────────────────────────────────── */}
-        <div>
-          <div className="flex items-center gap-2 mb-1">
-            <span className="w-1.5 h-1.5 rounded-full bg-[#1D9E75]" />
-            <span className="font-sans text-[11px] font-semibold tracking-widest uppercase text-[#1D9E75]">
-              Do now
-            </span>
-            <span className="ml-auto font-sans text-xs text-[#A0A8B8]/30">{nowTasks.length}</span>
-          </div>
-          <p className="font-sans text-[11px] text-[#A0A8B8]/40 mb-3">
-            {nowTasks.length} closest deadline{nowTasks.length !== 1 ? "s" : ""}
-            {allNowSorted.length > 3 ? ` · ${allNowSorted.length - 3} more in Later` : ""}
-          </p>
-          <div className="flex flex-col gap-2 min-h-[80px]">
-            {nowTasks.length === 0 ? (
-              <p className="py-8 text-center font-sans text-xs text-[#A0A8B8]/20 italic">All clear here.</p>
-            ) : (
-              nowTasks.map((t) => renderTask(t, true))
-            )}
-          </div>
+          <DroppableColumn
+            id="later"
+            tasks={laterTasks}
+            subtitle={`${laterTasks.length} upcoming${laterTasks.length === 10 ? " (top 10)" : ""}`}
+            emptyText="Nothing pending."
+            {...getColumnHighlight("later")}
+            isDragActive={activeTask != null}
+            highlightedIds={highlightedIds}
+            onMarkDone={markDone}
+            onDateChange={(id, iso) => updateTask(id, { due_date: iso })}
+            calendarId={calendarId}
+            setCalendarId={setCalendarId}
+            dateButtonRefs={dateButtonRefs}
+          />
+
+          <DroppableColumn
+            id="drop"
+            tasks={dropTasks}
+            subtitle={"\u00A0"}
+            emptyText="Nothing to let go of yet."
+            {...getColumnHighlight("drop")}
+            isDragActive={activeTask != null}
+            highlightedIds={highlightedIds}
+            onMarkDone={markDone}
+            onDateChange={(id, iso) => updateTask(id, { due_date: iso })}
+            calendarId={calendarId}
+            setCalendarId={setCalendarId}
+            dateButtonRefs={dateButtonRefs}
+          />
         </div>
 
-        {/* ── Do later ─────────────────────────────────────────── */}
-        <div>
-          <div className="flex items-center gap-2 mb-1">
-            <span className="w-1.5 h-1.5 rounded-full bg-[#EF9F27]" />
-            <span className="font-sans text-[11px] font-semibold tracking-widest uppercase text-[#EF9F27]">
-              Do later
-            </span>
-            <span className="ml-auto font-sans text-xs text-[#A0A8B8]/30">{laterTasks.length}</span>
-          </div>
-          <p className="font-sans text-[11px] text-[#A0A8B8]/40 mb-3">
-            {laterTasks.length} upcoming{laterTasks.length === 10 ? " (top 10)" : ""}
-          </p>
-          <div className="flex flex-col gap-2 min-h-[80px]">
-            {laterTasks.length === 0 ? (
-              <p className="py-8 text-center font-sans text-xs text-[#A0A8B8]/20 italic">Nothing pending.</p>
-            ) : (
-              laterTasks.map((t) => renderTask(t, false))
-            )}
-          </div>
-        </div>
-
-        {/* ── Drop ─────────────────────────────────────────────── */}
-        <div>
-          <div className="flex items-center gap-2 mb-1">
-            <span className="w-1.5 h-1.5 rounded-full bg-[#A0A8B8]" />
-            <span className="font-sans text-[11px] font-semibold tracking-widest uppercase text-[#A0A8B8]">
-              Drop
-            </span>
-            <span className="ml-auto font-sans text-xs text-[#A0A8B8]/30">{dropTasks.length}</span>
-          </div>
-          <p className="font-sans text-[11px] text-[#A0A8B8]/40 mb-3">&nbsp;</p>
-          <div className="flex flex-col gap-2 min-h-[80px]">
-            {dropTasks.length === 0 ? (
-              <p className="py-8 text-center font-sans text-xs text-[#A0A8B8]/20 italic">Nothing to let go of yet.</p>
-            ) : (
-              dropTasks.map((t) => renderTask(t, false))
-            )}
-          </div>
-        </div>
-
-      </div>
+        <DragOverlay dropAnimation={{
+          duration: 200,
+          easing: "cubic-bezier(0.2, 0, 0, 1)",
+        }}>
+          {activeTask ? <TaskDragOverlay task={activeTask} /> : null}
+        </DragOverlay>
+      </DndContext>
 
       {tasks.length > 0 && (
         <div className="mt-8 flex justify-center">
@@ -492,6 +735,7 @@ function AdvisorMicWrapper({
   const [isLoading, setIsLoading]     = useState(false);
   const [isPlaying, setIsPlaying]     = useState(false);
   const [summary, setSummary]         = useState<string | null>(null);
+  const [isMicHovered, setIsMicHovered] = useState(false);
   const [conversationHistory, setConversationHistory] = useState<
     { role: "user" | "assistant"; content: string }[]
   >([]);
@@ -500,11 +744,37 @@ function AdvisorMicWrapper({
   const recognitionRef = useRef<{ stop: () => void } | null>(null);
   const transcriptRef  = useRef<string>("");
   const audioRef       = useRef<HTMLAudioElement | null>(null);
+  const shiftRecordingRef = useRef(false);
 
   const stopPlayback = () => {
     audioRef.current?.pause();
     setIsPlaying(false);
   };
+
+  // ── Right Shift keyboard shortcut ─────────────────────────────────
+  const startRecordingRef = useRef<() => void>(() => {});
+  const stopRecordingRef = useRef<() => Promise<void>>(async () => {});
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.code === "ShiftRight" && !e.repeat && !shiftRecordingRef.current) {
+        shiftRecordingRef.current = true;
+        startRecordingRef.current();
+      }
+    };
+    const handleKeyUp = (e: KeyboardEvent) => {
+      if (e.code === "ShiftRight" && shiftRecordingRef.current) {
+        shiftRecordingRef.current = false;
+        stopRecordingRef.current();
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    window.addEventListener("keyup", handleKeyUp);
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+      window.removeEventListener("keyup", handleKeyUp);
+    };
+  }, []);
 
   const sendToAdvisor = async (userMessage: string) => {
     setIsLoading(true);
@@ -656,6 +926,10 @@ function AdvisorMicWrapper({
     if (text) await sendToAdvisor(text);
   };
 
+  // Keep refs in sync so the keyboard listener calls current versions
+  startRecordingRef.current = startRecording;
+  stopRecordingRef.current = stopRecording;
+
   const micState = isPlaying ? "playing" : isLoading ? "loading" : isRecording ? "recording" : "idle";
   const micColor = { idle: "#A0A8B8", recording: "#EF4444", loading: "#EF9F27", playing: "#1D9E75" }[micState];
   const micLabel = { idle: "Hold to ask", recording: "Release…", loading: "Thinking…", playing: "Tap to stop" }[micState];
@@ -668,32 +942,55 @@ function AdvisorMicWrapper({
         </p>
       )}
 
-      <button
-        onMouseDown={startRecording}
-        onMouseUp={stopRecording}
-        onTouchStart={(e) => { e.preventDefault(); startRecording(); }}
-        onTouchEnd={(e) => { e.preventDefault(); stopRecording(); }}
-        onClick={isPlaying ? stopPlayback : undefined}
-        disabled={isLoading}
-        aria-label={micLabel}
-        style={{ borderColor: micColor, color: micColor }}
-        className="relative w-10 h-10 rounded-full border-2 flex items-center justify-center transition-all duration-200 hover:opacity-80 disabled:opacity-40 select-none"
-      >
-        {isRecording && (
-          <span className="absolute inset-0 rounded-full animate-ping opacity-25" style={{ backgroundColor: micColor }} />
-        )}
-        {micState === "loading" ? (
-            <svg className="w-4 h-4 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83" />
+      <div className="relative">
+        <button
+          onMouseDown={startRecording}
+          onMouseUp={stopRecording}
+          onTouchStart={(e) => { e.preventDefault(); startRecording(); }}
+          onTouchEnd={(e) => { e.preventDefault(); stopRecording(); }}
+          onClick={isPlaying ? stopPlayback : undefined}
+          onMouseEnter={() => setIsMicHovered(true)}
+          onMouseLeave={() => setIsMicHovered(false)}
+          disabled={isLoading}
+          aria-label={micLabel}
+          style={{ borderColor: micColor, color: micColor }}
+          className="relative w-10 h-10 rounded-full border-2 flex items-center justify-center transition-all duration-200 hover:opacity-80 disabled:opacity-40 select-none"
+        >
+          {isRecording && (
+            <span className="absolute inset-0 rounded-full animate-ping opacity-25" style={{ backgroundColor: micColor }} />
+          )}
+          {micState === "loading" ? (
+              <svg className="w-4 h-4 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83" />
+              </svg>
+          ) : micState === "playing" ? (
+            <svg className="w-3.5 h-3.5" viewBox="0 0 20 20" fill="currentColor">
+              <rect x="4" y="4" width="12" height="12" rx="1" />
             </svg>
-        ) : micState === "playing" ? (
-          <svg className="w-3.5 h-3.5" viewBox="0 0 20 20" fill="currentColor">
-            <rect x="4" y="4" width="12" height="12" rx="1" />
-          </svg>
-        ) : (
-          <MicIcon/>
+          ) : (
+            <MicIcon/>
+          )}
+        </button>
+
+        {/* Keyboard shortcut tooltip */}
+        {isMicHovered && micState === "idle" && (
+          <div
+            className="absolute right-12 top-1/2 -translate-y-1/2 whitespace-nowrap font-sans text-[10px] text-[#A0A8B8]/60 flex items-center gap-1.5 pointer-events-none"
+            style={{ animation: "fadeSlideUp 120ms ease-out" }}
+          >
+            <span>or hold</span>
+            <kbd className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-medium tracking-wide"
+              style={{
+                background: "rgba(160,168,184,0.08)",
+                border: "1px solid rgba(160,168,184,0.15)",
+                color: "#A0A8B8",
+              }}
+            >
+              R Shift
+            </kbd>
+          </div>
         )}
-      </button>
+      </div>
 
       <span className="font-sans text-[9px]" style={{ color: micColor }}>{micLabel}</span>
     </div>
