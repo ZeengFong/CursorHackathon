@@ -367,12 +367,11 @@ function TaskDragOverlay({ task }: { task: Task }) {
 }
 
 // ── Droppable column ────────────────────────────────────────────────
-type ColumnId = "now" | "later" | "drop";
+type ColumnId = "now" | "later";
 
 const COLUMN_CONFIG: Record<ColumnId, { label: string; color: string; dot: string }> = {
   now:   { label: "Do now",   color: "#1D9E75", dot: "bg-[#1D9E75]" },
   later: { label: "Do later", color: "#EF9F27", dot: "bg-[#EF9F27]" },
-  drop:  { label: "Drop",     color: "#A0A8B8", dot: "bg-[#A0A8B8]" },
 };
 
 function DroppableColumn({
@@ -481,6 +480,89 @@ function DroppableColumn({
   );
 }
 
+// ── Upcoming task card (read-only, clickable) ───────────────────────
+function UpcomingTaskCard({
+  task,
+  onPromote,
+}: {
+  task: Task;
+  onPromote: (id: string) => void;
+}) {
+  const [isHovered, setIsHovered] = useState(false);
+  const src = SOURCE_STYLE[task.source] ?? SOURCE_STYLE.typed;
+
+  return (
+    <div
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+      onClick={() => onPromote(task.id)}
+      className="relative rounded-lg border px-4 py-3.5 cursor-pointer transition-all duration-150"
+      style={{
+        background: isHovered ? "rgba(93,202,165,0.06)" : "#13161C",
+        borderColor: isHovered ? "rgba(93,202,165,0.25)" : "rgba(29,158,117,0.08)",
+        boxShadow: isHovered ? "0 0 0 1px rgba(93,202,165,0.15)" : undefined,
+      }}
+    >
+      <div className="flex items-start gap-1 flex-wrap">
+        <p className="font-sans text-sm text-[#E8EAF0]/70 leading-snug flex-1">{task.text}</p>
+        {task.due_date && <DeadlineBadge due_date={task.due_date} />}
+      </div>
+
+      <div className="mt-2.5 flex items-center justify-between gap-2">
+        <span
+          className="text-[9px] font-sans font-medium px-1.5 py-0.5 rounded uppercase tracking-wider"
+          style={{ color: src.color, backgroundColor: src.color + "18" }}
+        >
+          {src.label}
+        </span>
+
+        {isHovered && (
+          <span className="text-[10px] font-sans text-[#5DCAA5] font-medium animate-pulse">
+            Click to prioritize ↑
+          </span>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ── Upcoming column (display-only, not droppable) ───────────────────
+function UpcomingColumn({
+  tasks,
+  onPromote,
+}: {
+  tasks: Task[];
+  onPromote: (id: string) => void;
+}) {
+  return (
+    <div
+      className="relative rounded-xl p-3"
+      style={{ minHeight: 160 }}
+    >
+      <div className="flex items-center gap-2 mb-1">
+        <span className="w-1.5 h-1.5 rounded-full bg-[#7C8DA6]" />
+        <span
+          className="font-sans text-[11px] font-semibold tracking-widest uppercase"
+          style={{ color: "#7C8DA6" }}
+        >
+          Upcoming
+        </span>
+        <span className="ml-auto font-sans text-xs text-[#A0A8B8]/30">{tasks.length}</span>
+      </div>
+      <p className="font-sans text-[11px] text-[#A0A8B8]/40 mb-3">Due within 2 days · click to prioritize</p>
+      <div className="flex flex-col gap-2 min-h-[80px]">
+        {tasks.length === 0 ? (
+          <p className="py-8 text-center font-sans text-xs text-[#A0A8B8]/20 italic">Nothing coming up soon.</p>
+        ) : (
+          tasks.map((t) => (
+            <UpcomingTaskCard key={t.id} task={t} onPromote={onPromote} />
+          ))
+        )}
+      </div>
+    </div>
+  );
+}
+
 // ── Main component ──────────────────────────────────────────────────
 export default function TriageMode({ tasks, updateTask, addTasks, deleteTask, onOpenLetter }: Props) {
   const [exitingIds, setExitingIds]         = useState<Set<string>>(new Set());
@@ -523,42 +605,42 @@ export default function TriageMode({ tasks, updateTask, addTasks, deleteTask, on
   // ── Derived task lists ────────────────────────────────────────────
   const today = new Date();
   today.setHours(0, 0, 0, 0);
-  const tomorrowEnd = new Date(today);
-  tomorrowEnd.setDate(tomorrowEnd.getDate() + 2);
+  const twoDaysOut = new Date(today);
+  twoDaysOut.setDate(twoDaysOut.getDate() + 2);
 
-  const isUrgent = (t: Task) => {
-    if (!t.due_date) return false;
-    const d = new Date(t.due_date + "T00:00:00");
-    return d.getTime() >= today.getTime() && d.getTime() < tomorrowEnd.getTime();
-  };
+  // Treat old "drop" category tasks as "later" since we removed the Drop column
+  const nowTasks   = sortTasks(visibleTasks.filter((t) => t.category === "now"));
+  const laterTasks = sortTasks(visibleTasks.filter((t) => t.category === "later" || t.category === "drop"));
 
-  const urgentFromOther = visibleTasks.filter((t) => t.category !== "now" && isUrgent(t));
-  const allNowSorted   = sortTasks([
-    ...visibleTasks.filter((t) => t.category === "now"),
-    ...urgentFromOther,
-  ]);
-  const urgentIds = new Set(urgentFromOther.map((t) => t.id));
-  const allLaterSorted = sortTasks(visibleTasks.filter((t) => t.category === "later" && !urgentIds.has(t.id)));
-
-  const nowTasks    = allNowSorted.slice(0, 3);
-  const nowOverflow = allNowSorted.slice(3);
-  const laterTasks  = [...nowOverflow, ...allLaterSorted].slice(0, 10);
-  const dropTasks   = sortTasks(visibleTasks.filter((t) => t.category === "drop" && !urgentIds.has(t.id)));
+  // Upcoming: copies of tasks (from any column) due within 2 days
+  const upcomingTasks = sortTasks(
+    visibleTasks.filter((t) => {
+      if (!t.due_date) return false;
+      const d = new Date(t.due_date + "T00:00:00");
+      return d.getTime() >= today.getTime() && d.getTime() < twoDaysOut.getTime();
+    })
+  );
 
   // ── Which column does a task currently appear in? ─────────────────
   const getDisplayColumn = (taskId: string): ColumnId | null => {
     if (nowTasks.some((t) => t.id === taskId)) return "now";
     if (laterTasks.some((t) => t.id === taskId)) return "later";
-    if (dropTasks.some((t) => t.id === taskId)) return "drop";
     return null;
   };
 
-  // ── Is the active drag an urgent task leaving "now"? ──────────────
-  const isDraggingUrgentOutOfNow =
-    activeTask != null &&
-    isUrgent(activeTask) &&
-    overColumnId != null &&
-    overColumnId !== "now";
+  // ── Promote an upcoming task to top of "Do later" ─────────────────
+  const promoteToLaterTop = (taskId: string) => {
+    const firstLater = laterTasks[0];
+    const topKey = generateKeyBetween(null, firstLater?.sort_order ?? null);
+    const task = visibleTasks.find((t) => t.id === taskId);
+    if (!task) return;
+    // If it's already in "later" (or "drop"), just move to top; if in "now", move to later + top
+    const updates: Partial<Task> = { sort_order: topKey };
+    if (task.category !== "later") {
+      updates.category = "later";
+    }
+    updateTask(taskId, updates);
+  };
 
   // ── Drag handlers ─────────────────────────────────────────────────
   const handleDragStart = (event: DragStartEvent) => {
@@ -567,8 +649,8 @@ export default function TriageMode({ tasks, updateTask, addTasks, deleteTask, on
   };
 
   // Map of column ID → sorted task list for sort_order computation
-  const columnTaskMap: Record<ColumnId, Task[]> = { now: nowTasks, later: laterTasks, drop: dropTasks };
-  const columnIds = new Set<string>(["now", "later", "drop"]);
+  const columnTaskMap: Record<ColumnId, Task[]> = { now: nowTasks, later: laterTasks };
+  const columnIds = new Set<string>(["now", "later"]);
 
   const resolveOverColumn = (overId: string): ColumnId | null => {
     if (columnIds.has(overId)) return overId as ColumnId;
@@ -658,10 +740,6 @@ export default function TriageMode({ tasks, updateTask, addTasks, deleteTask, on
     const currentCol = getDisplayColumn(activeTask.id);
     if (colId === currentCol) return { isOver: false, highlightColor: "green" as const, showWarning: false };
 
-    if (isUrgent(activeTask) && colId !== "now") {
-      return { isOver: true, highlightColor: "red" as const, showWarning: true };
-    }
-
     return { isOver: true, highlightColor: "green" as const, showWarning: false };
   };
 
@@ -698,7 +776,7 @@ export default function TriageMode({ tasks, updateTask, addTasks, deleteTask, on
           <DroppableColumn
             id="now"
             tasks={nowTasks}
-            subtitle={`${nowTasks.length} closest deadline${nowTasks.length !== 1 ? "s" : ""}${allNowSorted.length > 3 ? ` · ${allNowSorted.length - 3} more in Later` : ""}`}
+            subtitle={`${nowTasks.length} task${nowTasks.length !== 1 ? "s" : ""} to focus on`}
             emptyText="All clear here."
             allowOverdue
             {...getColumnHighlight("now")}
@@ -726,19 +804,9 @@ export default function TriageMode({ tasks, updateTask, addTasks, deleteTask, on
             dateButtonRefs={dateButtonRefs}
           />
 
-          <DroppableColumn
-            id="drop"
-            tasks={dropTasks}
-            subtitle={"\u00A0"}
-            emptyText="Nothing to let go of yet."
-            {...getColumnHighlight("drop")}
-            isDragActive={activeTask != null}
-            highlightedIds={highlightedIds}
-            onMarkDone={markDone}
-            onDateChange={(id, iso) => updateTask(id, { due_date: iso })}
-            calendarId={calendarId}
-            setCalendarId={setCalendarId}
-            dateButtonRefs={dateButtonRefs}
+          <UpcomingColumn
+            tasks={upcomingTasks}
+            onPromote={promoteToLaterTop}
           />
         </div>
 
