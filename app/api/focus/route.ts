@@ -20,7 +20,7 @@ export async function POST(request: Request) {
     }
 
     const completion = await openai.chat.completions.create({
-      model: "gpt-5",
+      model: "gpt-4o-mini",
       messages: [
         { role: "system", content: FOCUS_SYSTEM_PROMPT },
         { role: "user", content: `Task: ${task}` },
@@ -28,10 +28,7 @@ export async function POST(request: Request) {
       max_tokens: 16384,
       temperature: 0.3,
       response_format: { type: "json_object" },
-      reasoning: { effort: "medium" },
-      text: { format: { type: "text", verbosity: "low" } },
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    } as any);
+    });
 
     const raw = completion.choices[0]?.message?.content ?? "{}";
     const parsed = JSON.parse(raw) as { steps?: unknown[] };
