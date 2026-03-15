@@ -61,7 +61,7 @@ export default function MindLetter({ tasks, onClose }: MindLetterProps) {
       const res = await fetch('/api/letter', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ tasks }),
+        body: JSON.stringify({ tasks: tasks.filter(t => t.status !== 'done') }),
       })
 
       if (!res.ok || !res.body) {
