@@ -728,6 +728,7 @@ function AdvisorMicWrapper({
   const [isLoading, setIsLoading]     = useState(false);
   const [isPlaying, setIsPlaying]     = useState(false);
   const [summary, setSummary]         = useState<string | null>(null);
+  const [isMicHovered, setIsMicHovered] = useState(false);
   const [conversationHistory, setConversationHistory] = useState<
     { role: "user" | "assistant"; content: string }[]
   >([]);
@@ -736,11 +737,37 @@ function AdvisorMicWrapper({
   const recognitionRef = useRef<{ stop: () => void } | null>(null);
   const transcriptRef  = useRef<string>("");
   const audioRef       = useRef<HTMLAudioElement | null>(null);
+  const shiftRecordingRef = useRef(false);
 
   const stopPlayback = () => {
     audioRef.current?.pause();
     setIsPlaying(false);
   };
+
+  // ── Right Shift keyboard shortcut ─────────────────────────────────
+  const startRecordingRef = useRef<() => void>(() => {});
+  const stopRecordingRef = useRef<() => Promise<void>>(async () => {});
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.code === "ShiftRight" && !e.repeat && !shiftRecordingRef.current) {
+        shiftRecordingRef.current = true;
+        startRecordingRef.current();
+      }
+    };
+    const handleKeyUp = (e: KeyboardEvent) => {
+      if (e.code === "ShiftRight" && shiftRecordingRef.current) {
+        shiftRecordingRef.current = false;
+        stopRecordingRef.current();
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    window.addEventListener("keyup", handleKeyUp);
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+      window.removeEventListener("keyup", handleKeyUp);
+    };
+  }, []);
 
   const sendToAdvisor = async (userMessage: string) => {
     setIsLoading(true);
@@ -892,6 +919,10 @@ function AdvisorMicWrapper({
     if (text) await sendToAdvisor(text);
   };
 
+  // Keep refs in sync so the keyboard listener calls current versions
+  startRecordingRef.current = startRecording;
+  stopRecordingRef.current = stopRecording;
+
   const micState = isPlaying ? "playing" : isLoading ? "loading" : isRecording ? "recording" : "idle";
   const micColor = { idle: "#A0A8B8", recording: "#EF4444", loading: "#EF9F27", playing: "#1D9E75" }[micState];
   const micLabel = { idle: "Hold to ask", recording: "Release…", loading: "Thinking…", playing: "Tap to stop" }[micState];
@@ -904,32 +935,55 @@ function AdvisorMicWrapper({
         </p>
       )}
 
-      <button
-        onMouseDown={startRecording}
-        onMouseUp={stopRecording}
-        onTouchStart={(e) => { e.preventDefault(); startRecording(); }}
-        onTouchEnd={(e) => { e.preventDefault(); stopRecording(); }}
-        onClick={isPlaying ? stopPlayback : undefined}
-        disabled={isLoading}
-        aria-label={micLabel}
-        style={{ borderColor: micColor, color: micColor }}
-        className="relative w-10 h-10 rounded-full border-2 flex items-center justify-center transition-all duration-200 hover:opacity-80 disabled:opacity-40 select-none"
-      >
-        {isRecording && (
-          <span className="absolute inset-0 rounded-full animate-ping opacity-25" style={{ backgroundColor: micColor }} />
-        )}
-        {micState === "loading" ? (
-            <svg className="w-4 h-4 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83" />
+      <div className="relative">
+        <button
+          onMouseDown={startRecording}
+          onMouseUp={stopRecording}
+          onTouchStart={(e) => { e.preventDefault(); startRecording(); }}
+          onTouchEnd={(e) => { e.preventDefault(); stopRecording(); }}
+          onClick={isPlaying ? stopPlayback : undefined}
+          onMouseEnter={() => setIsMicHovered(true)}
+          onMouseLeave={() => setIsMicHovered(false)}
+          disabled={isLoading}
+          aria-label={micLabel}
+          style={{ borderColor: micColor, color: micColor }}
+          className="relative w-10 h-10 rounded-full border-2 flex items-center justify-center transition-all duration-200 hover:opacity-80 disabled:opacity-40 select-none"
+        >
+          {isRecording && (
+            <span className="absolute inset-0 rounded-full animate-ping opacity-25" style={{ backgroundColor: micColor }} />
+          )}
+          {micState === "loading" ? (
+              <svg className="w-4 h-4 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83" />
+              </svg>
+          ) : micState === "playing" ? (
+            <svg className="w-3.5 h-3.5" viewBox="0 0 20 20" fill="currentColor">
+              <rect x="4" y="4" width="12" height="12" rx="1" />
             </svg>
-        ) : micState === "playing" ? (
-          <svg className="w-3.5 h-3.5" viewBox="0 0 20 20" fill="currentColor">
-            <rect x="4" y="4" width="12" height="12" rx="1" />
-          </svg>
-        ) : (
-          <MicIcon/>
+          ) : (
+            <MicIcon/>
+          )}
+        </button>
+
+        {/* Keyboard shortcut tooltip */}
+        {isMicHovered && micState === "idle" && (
+          <div
+            className="absolute right-12 top-1/2 -translate-y-1/2 whitespace-nowrap font-sans text-[10px] text-[#A0A8B8]/60 flex items-center gap-1.5 pointer-events-none"
+            style={{ animation: "fadeSlideUp 120ms ease-out" }}
+          >
+            <span>or hold</span>
+            <kbd className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-medium tracking-wide"
+              style={{
+                background: "rgba(160,168,184,0.08)",
+                border: "1px solid rgba(160,168,184,0.15)",
+                color: "#A0A8B8",
+              }}
+            >
+              R Shift
+            </kbd>
+          </div>
         )}
-      </button>
+      </div>
 
       <span className="font-sans text-[9px]" style={{ color: micColor }}>{micLabel}</span>
     </div>
