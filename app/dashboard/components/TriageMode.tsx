@@ -170,7 +170,7 @@ export default function TriageMode({ tasks, updateTask, addTasks, deleteTask, on
                         updateTask(task.id, { due_date: e.target.value });
                         setCalendarId(null);
                       }}
-                      className="absolute bottom-full right-0 mb-1 bg-[#13161C] border border-[#1D9E75]/30 text-[#E8EAF0] font-sans text-xs rounded-lg px-2 py-1 outline-none z-10"
+                      className="absolute bottom-full right-0 mb-2 z-10 date-picker-themed"
                     />
                   )}
                 </div>
