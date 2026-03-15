@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useMemo } from "react";
 import type { Task } from "../page";
 import { MicIcon } from "@/app/components/ui/mic";
 
@@ -61,6 +61,142 @@ function DeadlineBadge({ due_date, allowOverdue }: { due_date: string; allowOver
     <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full ml-2 ${color}`}>
       {label}
     </span>
+  );
+}
+
+// ── Custom date picker ──────────────────────────────────────────────
+const PICKER_DAYS = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"];
+const PICKER_MONTHS = [
+  "Jan","Feb","Mar","Apr","May","Jun",
+  "Jul","Aug","Sep","Oct","Nov","Dec",
+];
+
+function DatePickerPopup({ value, onChange, onClose }: {
+  value: string | undefined;
+  onChange: (iso: string) => void;
+  onClose: () => void;
+}) {
+  const today = useMemo(() => { const d = new Date(); d.setHours(0,0,0,0); return d; }, []);
+  const initial = value ? new Date(value + "T00:00:00") : today;
+  const [viewYear, setViewYear] = useState(initial.getFullYear());
+  const [viewMonth, setViewMonth] = useState(initial.getMonth());
+
+  const firstDay = new Date(viewYear, viewMonth, 1).getDay();
+  const daysInMonth = new Date(viewYear, viewMonth + 1, 0).getDate();
+
+  const cells: (number | null)[] = [];
+  for (let i = 0; i < firstDay; i++) cells.push(null);
+  for (let d = 1; d <= daysInMonth; d++) cells.push(d);
+  while (cells.length % 7 !== 0) cells.push(null);
+
+  const prevMonth = () => {
+    if (viewMonth === 0) { setViewMonth(11); setViewYear(viewYear - 1); }
+    else setViewMonth(viewMonth - 1);
+  };
+  const nextMonth = () => {
+    if (viewMonth === 11) { setViewMonth(0); setViewYear(viewYear + 1); }
+    else setViewMonth(viewMonth + 1);
+  };
+
+  const selectDay = (day: number) => {
+    const iso = `${viewYear}-${String(viewMonth + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+    onChange(iso);
+  };
+
+  const selectedKey = value?.slice(0, 10);
+  const todayKey = today.toISOString().split("T")[0];
+
+  return (
+    <div
+      className="absolute bottom-full right-0 mb-2 z-20"
+      onClick={(e) => e.stopPropagation()}
+    >
+      <div
+        className="rounded-xl p-3 shadow-xl"
+        style={{
+          background: "#13161C",
+          border: "1.5px solid #5DCAA5",
+          width: 260,
+          fontSize: "13px",
+        }}
+      >
+        {/* Month/year nav */}
+        <div className="flex items-center justify-between mb-2">
+          <button
+            onClick={prevMonth}
+            className="w-6 h-6 flex items-center justify-center rounded-md text-[#A0A8B8]/50 hover:text-[#5DCAA5] hover:bg-[#1D9E75]/10 transition-colors"
+          >
+            ‹
+          </button>
+          <span className="font-sans text-[13px] font-medium text-[#E8EAF0]">
+            {PICKER_MONTHS[viewMonth]} {viewYear}
+          </span>
+          <button
+            onClick={nextMonth}
+            className="w-6 h-6 flex items-center justify-center rounded-md text-[#A0A8B8]/50 hover:text-[#5DCAA5] hover:bg-[#1D9E75]/10 transition-colors"
+          >
+            ›
+          </button>
+        </div>
+
+        {/* Day headers */}
+        <div className="grid grid-cols-7 mb-1">
+          {PICKER_DAYS.map((d) => (
+            <div key={d} className="text-center font-sans text-[10px] font-medium tracking-wide uppercase text-[#A0A8B8]/35 py-0.5">
+              {d}
+            </div>
+          ))}
+        </div>
+
+        {/* Day grid */}
+        <div className="grid grid-cols-7">
+          {cells.map((day, idx) => {
+            if (day === null) return <div key={`e-${idx}`} className="h-8" />;
+
+            const iso = `${viewYear}-${String(viewMonth + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+            const isSelected = iso === selectedKey;
+            const isToday = iso === todayKey;
+
+            return (
+              <button
+                key={iso}
+                onClick={() => selectDay(day)}
+                className="h-8 w-full flex items-center justify-center rounded-lg font-sans text-[13px] transition-colors"
+                style={{
+                  color: isSelected ? "#0D0F14" : isToday ? "#5DCAA5" : "#E8EAF0",
+                  background: isSelected ? "#5DCAA5" : "transparent",
+                  fontWeight: isSelected || isToday ? 600 : 400,
+                }}
+                onMouseEnter={(e) => {
+                  if (!isSelected) e.currentTarget.style.background = "rgba(29,158,117,0.12)";
+                }}
+                onMouseLeave={(e) => {
+                  if (!isSelected) e.currentTarget.style.background = "transparent";
+                }}
+              >
+                {day}
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Today shortcut */}
+        <div className="mt-2 pt-2 flex justify-between items-center" style={{ borderTop: "1px solid rgba(29,158,117,0.12)" }}>
+          <button
+            onClick={() => { setViewYear(today.getFullYear()); setViewMonth(today.getMonth()); selectDay(today.getDate()); }}
+            className="font-sans text-[11px] text-[#5DCAA5] hover:text-[#7DDBB8] transition-colors px-2 py-0.5 rounded hover:bg-[#1D9E75]/8"
+          >
+            Today
+          </button>
+          <button
+            onClick={onClose}
+            className="font-sans text-[11px] text-[#A0A8B8]/40 hover:text-[#A0A8B8] transition-colors px-2 py-0.5 rounded hover:bg-white/5"
+          >
+            Cancel
+          </button>
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -163,14 +299,13 @@ export default function TriageMode({ tasks, updateTask, addTasks, deleteTask, on
                     + date
                   </button>
                   {calendarId === task.id && (
-                    <input
-                      type="date"
-                      value={task.due_date ?? ""}
-                      onChange={(e) => {
-                        updateTask(task.id, { due_date: e.target.value });
+                    <DatePickerPopup
+                      value={task.due_date}
+                      onChange={(iso) => {
+                        updateTask(task.id, { due_date: iso });
                         setCalendarId(null);
                       }}
-                      className="absolute bottom-full right-0 mb-2 z-10 date-picker-themed"
+                      onClose={() => setCalendarId(null)}
                     />
                   )}
                 </div>
