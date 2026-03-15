@@ -253,13 +253,29 @@ export default function TriageMode({ tasks, updateTask, addTasks, deleteTask, on
   };
 
   // ── Derived task lists ────────────────────────────────────────────
-  const allNowSorted   = sortByDueDate(visibleTasks.filter((t) => t.category === "now"));
-  const allLaterSorted = sortByDueDate(visibleTasks.filter((t) => t.category === "later"));
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const tomorrowEnd = new Date(today);
+  tomorrowEnd.setDate(tomorrowEnd.getDate() + 2); // midnight after tomorrow
+
+  const isUrgent = (t: Task) => {
+    if (!t.due_date) return false;
+    const d = new Date(t.due_date + "T00:00:00");
+    return d.getTime() >= today.getTime() && d.getTime() < tomorrowEnd.getTime();
+  };
+
+  const urgentFromOther = visibleTasks.filter((t) => t.category !== "now" && isUrgent(t));
+  const allNowSorted   = sortByDueDate([
+    ...visibleTasks.filter((t) => t.category === "now"),
+    ...urgentFromOther,
+  ]);
+  const urgentIds = new Set(urgentFromOther.map((t) => t.id));
+  const allLaterSorted = sortByDueDate(visibleTasks.filter((t) => t.category === "later" && !urgentIds.has(t.id)));
 
   const nowTasks    = allNowSorted.slice(0, 3);
   const nowOverflow = allNowSorted.slice(3);
   const laterTasks  = [...nowOverflow, ...allLaterSorted].slice(0, 10);
-  const dropTasks   = visibleTasks.filter((t) => t.category === "drop");
+  const dropTasks   = visibleTasks.filter((t) => t.category === "drop" && !urgentIds.has(t.id));
 
   // ── Task card renderer ────────────────────────────────────────────
   const renderTask = (task: Task, allowOverdue = false) => {
