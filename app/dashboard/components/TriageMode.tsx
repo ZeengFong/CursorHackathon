@@ -644,11 +644,20 @@ export default function TriageMode({ tasks, updateTask, addTasks, deleteTask, on
     updateTask(taskId, updates);
   };
 
-  // ── Auto-promote: keep "Do now" filled up to DO_NOW_CAP ──────────
-  // When "Do now" drops below the cap and "Do later" has tasks, move
-  // the top "Do later" task to the bottom of "Do now".
+  // ── Auto-balance: hard-cap "Do now" at DO_NOW_CAP ────────────────
+  // Over cap  → demote the bottom "now" task(s) to the top of "later"
+  // Under cap → promote the top "later" task to the bottom of "now"
   useEffect(() => {
-    if (nowTasks.length < DO_NOW_CAP && laterTasks.length > 0) {
+    if (nowTasks.length > DO_NOW_CAP) {
+      // Demote excess tasks from bottom of "now" to top of "later"
+      const excess = nowTasks.slice(DO_NOW_CAP);
+      let insertBefore = laterTasks[0]?.sort_order ?? null;
+      for (const task of excess) {
+        const topKey = generateKeyBetween(null, insertBefore);
+        updateTask(task.id, { category: "later", sort_order: topKey });
+        insertBefore = topKey; // next demoted task goes after this one
+      }
+    } else if (nowTasks.length < DO_NOW_CAP && laterTasks.length > 0) {
       const topLater = laterTasks[0];
       const lastNow = nowTasks[nowTasks.length - 1];
       const bottomKey = generateKeyBetween(lastNow?.sort_order ?? null, null);
