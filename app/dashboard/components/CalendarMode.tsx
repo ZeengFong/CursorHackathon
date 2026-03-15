@@ -137,150 +137,150 @@ export default function CalendarMode({ tasks, updateTask }: Props) {
   );
 
   return (
-    <div className="p-6 sm:p-8 max-w-3xl">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-7">
-        <div>
-          <h2 className="font-serif text-2xl text-[#E8EAF0]">Calendar</h2>
-          <p className="mt-0.5 font-sans text-xs text-[#A0A8B8]/50">
-            Dates parsed automatically from task text
-          </p>
-        </div>
-        <div className="flex items-center gap-3">
-          <button
-            onClick={prevMonth}
-            className="w-8 h-8 rounded-lg flex items-center justify-center text-[#A0A8B8]/50 hover:text-[#E8EAF0] hover:bg-[#13161C] transition-colors"
-          >
-            ‹
-          </button>
-          <span className="font-sans text-sm font-medium text-[#E8EAF0] w-32 text-center">
-            {MONTH_NAMES[month]} {year}
-          </span>
-          <button
-            onClick={nextMonth}
-            className="w-8 h-8 rounded-lg flex items-center justify-center text-[#A0A8B8]/50 hover:text-[#E8EAF0] hover:bg-[#13161C] transition-colors"
-          >
-            ›
-          </button>
-        </div>
+    <div className="p-6 sm:p-8 max-w-5xl mx-auto">
+      {/* Title — centred above everything */}
+      <div className="text-center mb-8">
+        <h2 className="font-serif text-2xl text-[#E8EAF0]">Calendar</h2>
+        <p className="mt-0.5 font-sans text-xs text-[#A0A8B8]/50">
+          Dates parsed automatically from task text
+        </p>
       </div>
 
-      {/* Day-name row */}
-      <div className="grid grid-cols-7 mb-1">
-        {DAY_NAMES.map((d) => (
-          <div key={d} className="text-center font-sans text-[10px] font-medium tracking-widest uppercase text-[#A0A8B8]/35 py-1">
-            {d}
-          </div>
-        ))}
-      </div>
-
-      {/* Calendar grid */}
-      <div className="grid grid-cols-7 gap-px bg-[#1D9E75]/6 rounded-xl overflow-hidden border border-[#1D9E75]/8">
-        {cells.map((day, idx) => {
-          if (day === null) {
-            return <div key={`empty-${idx}`} className="bg-[#0D0F14] h-16 sm:h-20" />;
-          }
-          const key = cellKey(day);
-          const dayTasks = tasksByDate.get(key) ?? [];
-          const today_ = isToday(day);
-
-          return (
-            <div
-              key={key}
-              className={`bg-[#0D0F14] h-16 sm:h-20 p-1.5 flex flex-col relative ${
-                today_ ? "ring-1 ring-inset ring-[#1D9E75]/50" : ""
-              }`}
+      {/* Calendar + Upcoming side-by-side */}
+      <div className="flex gap-8 items-start">
+        {/* Calendar column */}
+        <div className="flex-1 min-w-0 max-w-[540px]">
+          {/* Month switcher — centred over the grid */}
+          <div className="flex items-center justify-center gap-3 mb-4">
+            <button
+              onClick={prevMonth}
+              className="w-8 h-8 rounded-lg flex items-center justify-center text-[#A0A8B8]/50 hover:text-[#E8EAF0] hover:bg-[#13161C] transition-colors"
             >
-              {/* Day number */}
-              <span
-                className={`font-sans text-[11px] leading-none ${
-                  today_ ? "text-[#5DCAA5] font-semibold" : "text-[#A0A8B8]/40"
-                }`}
-              >
-                {day}
-              </span>
+              ‹
+            </button>
+            <span className="font-sans text-sm font-medium text-[#E8EAF0] w-32 text-center">
+              {MONTH_NAMES[month]} {year}
+            </span>
+            <button
+              onClick={nextMonth}
+              className="w-8 h-8 rounded-lg flex items-center justify-center text-[#A0A8B8]/50 hover:text-[#E8EAF0] hover:bg-[#13161C] transition-colors"
+            >
+              ›
+            </button>
+          </div>
 
-              {/* Task dots */}
-              <div className="flex flex-wrap gap-0.5 mt-1">
-                {dayTasks.slice(0, 4).map((t) => (
-                  <div
-                    key={t.id}
-                    className="relative"
-                    onMouseEnter={() => setTooltipTaskId(t.id)}
-                    onMouseLeave={() => setTooltipTaskId(null)}
-                  >
-                    <div
-                      className="w-1.5 h-1.5 rounded-full"
-                      style={{ backgroundColor: CATEGORY_COLOR[t.category] }}
-                    />
-                    {/* Tooltip */}
-                    {tooltipTaskId === t.id && (
-                      <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 z-20 w-44 bg-[#13161C] border border-[#1D9E75]/25 rounded-lg px-2.5 py-2 shadow-lg pointer-events-none">
-                        <p className="font-sans text-[11px] text-[#E8EAF0] leading-snug">
-                          {t.text}
-                        </p>
-                        <div
-                          className="mt-1 text-[9px] font-sans font-semibold uppercase tracking-wider"
-                          style={{ color: CATEGORY_COLOR[t.category] }}
-                        >
-                          {t.category}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                ))}
-                {dayTasks.length > 4 && (
-                  <span className="font-sans text-[9px] text-[#A0A8B8]/40">+{dayTasks.length - 4}</span>
-                )}
-              </div>
-            </div>
-          );
-        })}
-      </div>
-
-      {/* Upcoming list */}
-      {upcomingTasks.length > 0 && (
-        <div className="mt-8">
-          <p className="text-[10px] font-sans font-medium tracking-widest uppercase text-[#A0A8B8]/35 mb-3">
-            Upcoming
-          </p>
-          <div className="flex flex-col gap-2">
-            {upcomingTasks.map((t) => (
-              <div
-                key={t.id}
-                className="flex items-center gap-3 px-4 py-2.5 rounded-lg bg-[#13161C] border border-[#1D9E75]/8"
-              >
-                <div
-                  className="w-1.5 h-1.5 rounded-full shrink-0"
-                  style={{ backgroundColor: CATEGORY_COLOR[t.category] }}
-                />
-                <span className="font-sans text-sm text-[#E8EAF0] leading-snug flex-1 truncate">
-                  {t.text}
-                </span>
-                <span className="font-sans text-[11px] text-[#A0A8B8]/40 shrink-0 tabular-nums">
-                  {t.due_date?.slice(5)}
-                </span>
-                {/* Editable date */}
-                <input
-                  type="date"
-                  value={t.due_date ?? ""}
-                  onChange={(e) => updateTask(t.id, { due_date: e.target.value })}
-                  className="w-[1px] h-[1px] opacity-0 absolute"
-                  aria-hidden
-                />
+          {/* Day-name row */}
+          <div className="grid grid-cols-7 mb-1">
+            {DAY_NAMES.map((d) => (
+              <div key={d} className="text-center font-sans text-[10px] font-medium tracking-widest uppercase text-[#A0A8B8]/35 py-1">
+                {d}
               </div>
             ))}
           </div>
-        </div>
-      )}
 
-      {upcomingTasks.length === 0 && (
-        <div className="mt-8 text-center">
-          <p className="font-sans text-sm text-[#A0A8B8]/35 italic">
-            No dated tasks yet. Add dates in Triage to see them here.
-          </p>
+          {/* Calendar grid */}
+          <div className="grid grid-cols-7 gap-px bg-[#1D9E75]/6 rounded-xl overflow-hidden border border-[#1D9E75]/8">
+            {cells.map((day, idx) => {
+              if (day === null) {
+                return <div key={`empty-${idx}`} className="bg-[#0D0F14] h-16 sm:h-20" />;
+              }
+              const key = cellKey(day);
+              const dayTasks = tasksByDate.get(key) ?? [];
+              const today_ = isToday(day);
+
+              return (
+                <div
+                  key={key}
+                  className={`bg-[#0D0F14] h-16 sm:h-20 p-1.5 flex flex-col relative ${
+                    today_ ? "ring-1 ring-inset ring-[#1D9E75]/50" : ""
+                  }`}
+                >
+                  <span
+                    className={`font-sans text-[11px] leading-none ${
+                      today_ ? "text-[#5DCAA5] font-semibold" : "text-[#A0A8B8]/40"
+                    }`}
+                  >
+                    {day}
+                  </span>
+
+                  <div className="flex flex-wrap gap-0.5 mt-1">
+                    {dayTasks.slice(0, 4).map((t) => (
+                      <div
+                        key={t.id}
+                        className="relative"
+                        onMouseEnter={() => setTooltipTaskId(t.id)}
+                        onMouseLeave={() => setTooltipTaskId(null)}
+                      >
+                        <div
+                          className="w-1.5 h-1.5 rounded-full"
+                          style={{ backgroundColor: CATEGORY_COLOR[t.category] }}
+                        />
+                        {tooltipTaskId === t.id && (
+                          <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 z-20 w-44 bg-[#13161C] border border-[#1D9E75]/25 rounded-lg px-2.5 py-2 shadow-lg pointer-events-none">
+                            <p className="font-sans text-[11px] text-[#E8EAF0] leading-snug">
+                              {t.text}
+                            </p>
+                            <div
+                              className="mt-1 text-[9px] font-sans font-semibold uppercase tracking-wider"
+                              style={{ color: CATEGORY_COLOR[t.category] }}
+                            >
+                              {t.category}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                    {dayTasks.length > 4 && (
+                      <span className="font-sans text-[9px] text-[#A0A8B8]/40">+{dayTasks.length - 4}</span>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
         </div>
-      )}
+
+        {/* Upcoming tasks — right column */}
+        <div className="w-48 shrink-0 pt-9">
+          {upcomingTasks.length > 0 ? (
+            <>
+              <p className="text-[10px] font-sans font-medium tracking-widest uppercase text-[#A0A8B8]/35 mb-3">
+                Upcoming
+              </p>
+              <div className="flex flex-col gap-1.5">
+                {upcomingTasks.map((t) => (
+                  <div
+                    key={t.id}
+                    className="flex items-center gap-2 px-3 py-2 rounded-lg bg-[#13161C] border border-[#1D9E75]/8 relative"
+                  >
+                    <div
+                      className="w-1.5 h-1.5 rounded-full shrink-0"
+                      style={{ backgroundColor: CATEGORY_COLOR[t.category] }}
+                    />
+                    <span className="font-sans text-xs text-[#E8EAF0] leading-snug flex-1 truncate">
+                      {t.text}
+                    </span>
+                    <span className="font-sans text-[10px] text-[#A0A8B8]/40 shrink-0 tabular-nums">
+                      {t.due_date?.slice(5)}
+                    </span>
+                    <input
+                      type="date"
+                      value={t.due_date ?? ""}
+                      onChange={(e) => updateTask(t.id, { due_date: e.target.value })}
+                      className="w-[1px] h-[1px] opacity-0 absolute"
+                      aria-hidden
+                    />
+                  </div>
+                ))}
+              </div>
+            </>
+          ) : (
+            <p className="font-sans text-xs text-[#A0A8B8]/35 italic mt-6">
+              No dated tasks yet.
+            </p>
+          )}
+        </div>
+      </div>
     </div>
   );
 }
