@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useMemo } from "react";
+import { useState, useRef, useMemo, useEffect } from "react";
 import type { Task } from "../page";
 import { MicIcon } from "@/app/components/ui/mic";
 
@@ -71,15 +71,32 @@ const PICKER_MONTHS = [
   "Jul","Aug","Sep","Oct","Nov","Dec",
 ];
 
-function DatePickerPopup({ value, onChange, onClose }: {
+function DatePickerPopup({ value, onChange, onClose, anchorRef }: {
   value: string | undefined;
   onChange: (iso: string) => void;
   onClose: () => void;
+  anchorRef: React.RefObject<HTMLElement | null>;
 }) {
   const today = useMemo(() => { const d = new Date(); d.setHours(0,0,0,0); return d; }, []);
   const initial = value ? new Date(value + "T00:00:00") : today;
   const [viewYear, setViewYear] = useState(initial.getFullYear());
   const [viewMonth, setViewMonth] = useState(initial.getMonth());
+  const [pos, setPos] = useState<{ top: number; left: number } | null>(null);
+
+  useEffect(() => {
+    const update = () => {
+      if (!anchorRef.current) return;
+      const rect = anchorRef.current.getBoundingClientRect();
+      setPos({ top: rect.bottom + 6, left: rect.right - 260 });
+    };
+    update();
+    window.addEventListener("scroll", update, true);
+    window.addEventListener("resize", update);
+    return () => {
+      window.removeEventListener("scroll", update, true);
+      window.removeEventListener("resize", update);
+    };
+  }, [anchorRef]);
 
   const firstDay = new Date(viewYear, viewMonth, 1).getDay();
   const daysInMonth = new Date(viewYear, viewMonth + 1, 0).getDate();
@@ -106,19 +123,23 @@ function DatePickerPopup({ value, onChange, onClose }: {
   const selectedKey = value?.slice(0, 10);
   const todayKey = today.toISOString().split("T")[0];
 
+  if (!pos) return null;
+
   return (
-    <div
-      className="absolute bottom-full right-0 mb-2 z-20"
-      onClick={(e) => e.stopPropagation()}
-    >
+    <>
+      {/* Invisible backdrop to catch clicks outside */}
+      <div className="fixed inset-0 z-[9998]" onClick={onClose} />
       <div
-        className="rounded-xl p-3 shadow-xl"
+        className="fixed z-[9999] rounded-xl p-3 shadow-xl"
         style={{
+          top: pos.top,
+          left: pos.left,
           background: "#13161C",
           border: "1.5px solid #5DCAA5",
           width: 260,
           fontSize: "13px",
         }}
+        onClick={(e) => e.stopPropagation()}
       >
         {/* Month/year nav */}
         <div className="flex items-center justify-between mb-2">
@@ -196,7 +217,7 @@ function DatePickerPopup({ value, onChange, onClose }: {
           </button>
         </div>
       </div>
-    </div>
+    </>
   );
 }
 
@@ -206,6 +227,7 @@ export default function TriageMode({ tasks, updateTask, addTasks, deleteTask, on
   const [exitingIds, setExitingIds]         = useState<Set<string>>(new Set());
   const [calendarId, setCalendarId]         = useState<string | null>(null);
   const [highlightedIds, setHighlightedIds] = useState<Set<string>>(new Set());
+  const dateButtonRefs = useRef<Map<string, HTMLButtonElement>>(new Map());
 
   const visibleTasks = tasks.filter((t) => t.status !== "done");
 
@@ -265,7 +287,7 @@ export default function TriageMode({ tasks, updateTask, addTasks, deleteTask, on
               updateTask(task.id, { category: CYCLE[task.category] });
           }}
           onMouseEnter={() => setHoveredId(task.id)}
-          onMouseLeave={() => { setHoveredId(null); setCalendarId(null); }}
+          onMouseLeave={() => { setHoveredId(null); }}
           className="relative cursor-pointer rounded-lg bg-[#13161C] border px-4 py-3.5 transition-all outline-none focus-visible:ring-1 focus-visible:ring-[#1D9E75]/50"
           style={{
             borderColor: isHighlighted ? "#5DCAA5" : "rgba(29,158,117,0.08)",
@@ -291,24 +313,24 @@ export default function TriageMode({ tasks, updateTask, addTasks, deleteTask, on
             {hoveredId === task.id && (
               <div className="flex items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
                 {/* Add to calendar */}
-                <div className="relative">
-                  <button
-                    onClick={() => setCalendarId(calendarId === task.id ? null : task.id)}
-                    className="text-[10px] font-sans text-[#A0A8B8]/40 hover:text-[#5DCAA5] transition-colors px-1.5 py-0.5 rounded hover:bg-[#1D9E75]/8"
-                  >
-                    + date
-                  </button>
-                  {calendarId === task.id && (
-                    <DatePickerPopup
-                      value={task.due_date}
-                      onChange={(iso) => {
-                        updateTask(task.id, { due_date: iso });
-                        setCalendarId(null);
-                      }}
-                      onClose={() => setCalendarId(null)}
-                    />
-                  )}
-                </div>
+                <button
+                  ref={(el) => { if (el) dateButtonRefs.current.set(task.id, el); }}
+                  onClick={() => setCalendarId(calendarId === task.id ? null : task.id)}
+                  className="text-[10px] font-sans text-[#A0A8B8]/40 hover:text-[#5DCAA5] transition-colors px-1.5 py-0.5 rounded hover:bg-[#1D9E75]/8"
+                >
+                  + date
+                </button>
+                {calendarId === task.id && (
+                  <DatePickerPopup
+                    value={task.due_date}
+                    onChange={(iso) => {
+                      updateTask(task.id, { due_date: iso });
+                      setCalendarId(null);
+                    }}
+                    onClose={() => setCalendarId(null)}
+                    anchorRef={{ current: dateButtonRefs.current.get(task.id) ?? null }}
+                  />
+                )}
 
                 <button
                   onClick={() => markDone(task.id)}
