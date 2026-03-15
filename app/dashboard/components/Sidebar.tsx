@@ -25,15 +25,6 @@ const MODE_ITEMS: { id: AppMode; label: string; icon: React.ReactNode }[] = [
     ),
   },
   {
-    id: "dump",
-    label: "Dump",
-    icon: (
-      <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth={1.5} className="w-4 h-4 shrink-0">
-        <path strokeLinecap="round" strokeLinejoin="round" d="M10 4v9m0 0-3-3m3 3 3-3M5 16h10" />
-      </svg>
-    ),
-  },
-  {
     id: "triage",
     label: "Triage",
     icon: (
