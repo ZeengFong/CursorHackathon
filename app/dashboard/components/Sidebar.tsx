@@ -193,7 +193,7 @@ export default function Sidebar({ mode, setMode, taskCount, voiceEnabled, setVoi
 
         <div className="flex items-center justify-between mb-8 px-2">
           <span className="font-serif text-xl text-[#E8EAF0]">
-            Clear<em className="text-[#5DCAA5] italic">Head</em>
+            Brain<em className="text-[#5DCAA5] italic">Dump</em>
           </span>
           <div className="w-7 h-7 rounded-full bg-[#1D9E75]/20 border border-[#1D9E75]/30 flex items-center justify-center shrink-0">
             <span className="font-sans text-[10px] font-semibold text-[#5DCAA5]">{initials}</span>

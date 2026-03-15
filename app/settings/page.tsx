@@ -218,7 +218,7 @@ export default function SettingsPage() {
     } finally {
       try { sessionStorage.clear(); } catch {}
       [
-        "clearhead_tasks", "BrainDump_tasks",
+        "BrainDump_tasks", "BrainDump_tasks",
         "BrainDump_voice_enabled", "BrainDump_display_name",
         "BrainDump_panic_url", "BrainDump_voice_name",
         "BrainDump_autodate", "BrainDump_show_past",

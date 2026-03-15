@@ -18,7 +18,7 @@ const sora = Sora({
 });
 
 export const metadata: Metadata = {
-  title: "ClearHead — Cognitive Load Manager",
+  title: "BrainDump — Cognitive Load Manager",
   description:
     "Dump everything on your mind. AI organises it into a clear action plan.",
 };

@@ -100,7 +100,7 @@ export default function Dashboard() {
   const [tasks, setTasks]               = useState<Task[]>([]);
   const [mounted, setMounted]           = useState(false);
   const [voiceEnabled, setVoiceEnabled] = useState(false);
-  const [userName, setUserName]         = useState("ClearHead");
+  const [userName, setUserName]         = useState("BrainDump");
   const [dismissedText, setDismissedText] = useState<string | null>(null);
   const [restoredBanner, setRestoredBanner] = useState(false);
   const lastSpeakKey = useRef<string>("");

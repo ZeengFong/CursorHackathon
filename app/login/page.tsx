@@ -144,13 +144,13 @@ export default function LoginPage() {
       try {
         const { data: { user } } = await supabase.auth.getUser();
         if (user) {
-          const previousUserId = sessionStorage.getItem("clearhead_current_user");
+          const previousUserId = sessionStorage.getItem("BrainDump_current_user");
           if (previousUserId && previousUserId !== user.id) {
             sessionStorage.clear();
           }
-          sessionStorage.setItem("clearhead_current_user", user.id);
+          sessionStorage.setItem("BrainDump_current_user", user.id);
           sessionStorage.setItem(
-            "clearhead_user",
+            "BrainDump_user",
             user.user_metadata?.display_name || user.email?.split("@")[0] || "User"
           );
         }
@@ -187,9 +187,9 @@ export default function LoginPage() {
       try {
         const { data: { user } } = await supabase.auth.getUser();
         if (user) {
-          sessionStorage.setItem("clearhead_current_user", user.id);
+          sessionStorage.setItem("BrainDump_current_user", user.id);
           sessionStorage.setItem(
-            "clearhead_user",
+            "BrainDump_user",
             user.user_metadata?.display_name || user.email?.split("@")[0] || "User"
           );
         }

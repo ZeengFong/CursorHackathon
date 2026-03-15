@@ -1,4 +1,4 @@
-// ── ClearHead overlay — runs inside the extension iframe ──────────────
+// ── BrainDump overlay — runs inside the extension iframe ──────────────
 
 const APP_URL = (() => {
   // For local dev:    'http://localhost:3000'
@@ -145,7 +145,7 @@ async function handleSubmit() {
 
   } catch {
     showError(
-      "Could not reach ClearHead. Make sure the app is running at localhost:3000 or update APP_URL in overlay.js for production."
+      "Could not reach BrainDump. Make sure the app is running at localhost:3000 or update APP_URL in overlay.js for production."
     );
   } finally {
     setLoading(false);
