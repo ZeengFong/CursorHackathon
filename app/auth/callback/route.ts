@@ -46,7 +46,8 @@ export async function GET(request: Request) {
     if (user) userId = user.id;
   } catch { /* ignore */ }
 
-  const redirectUrl = new URL("/dashboard", request.url);
+  const next = requestUrl.searchParams.get("next");
+  const redirectUrl = new URL(next || "/dashboard", request.url);
   if (userId) redirectUrl.searchParams.set("uid", userId);
   return NextResponse.redirect(redirectUrl);
 }
