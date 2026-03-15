@@ -23,8 +23,8 @@ export async function POST(req: NextRequest) {
 
     const userMsg = `My brain dump has been triaged into these tasks:\n\n${lines}`;
 
-    const stream = await openai.chat.completions.create({
-      model: "gpt-5-mini",
+    const stream = (await openai.chat.completions.create({
+      model: "gpt-5",
       stream: true,
       max_tokens: 16384,
       temperature: 0.75,
@@ -34,9 +34,9 @@ export async function POST(req: NextRequest) {
       ],
       reasoning: { effort: "medium" },
       text: { format: { type: "text", verbosity: "low" } },
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    } as any) as any as AsyncIterable<OpenAI.Chat.ChatCompletionChunk>;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } as any)) as any as AsyncIterable<OpenAI.Chat.ChatCompletionChunk>;
 
     const readable = new ReadableStream({
       async start(controller) {

@@ -37,7 +37,7 @@ export async function POST(request: Request) {
       parts.length === 1 && parts[0].type === "text" ? textContent : parts;
 
     const completion = await openai.chat.completions.create({
-      model: files.length > 0 ? "gpt-5-mini" : "gpt-5-mini",
+      model: files.length > 0 ? "gpt-5" : "gpt-5",
       messages: [
         { role: "system", content: TRIAGE_SYSTEM_PROMPT },
         { role: "user", content: userContent },
@@ -47,7 +47,7 @@ export async function POST(request: Request) {
       response_format: { type: "json_object" },
       reasoning: { effort: "medium" },
       text: { format: { type: "text", verbosity: "low" } },
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } as any);
 
     // Clean up uploaded files
