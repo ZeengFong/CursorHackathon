@@ -63,13 +63,11 @@ interface Props {
   mode: AppMode;
   setMode: (m: AppMode) => void;
   taskCount: number;
-  voiceEnabled: boolean;
-  setVoiceEnabled: (v: boolean) => void;
   userName: string;
   onPanic: () => void;
 }
 
-export default function Sidebar({ mode, setMode, taskCount, voiceEnabled, setVoiceEnabled, userName, onPanic }: Props) {
+export default function Sidebar({ mode, setMode, taskCount, userName, onPanic }: Props) {
   const router = useRouter();
 
   const initials = userName

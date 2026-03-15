@@ -1,12 +1,11 @@
 "use client";
 
-import { useState, useEffect, useRef, useMemo } from "react";
+import { useState, useEffect, useMemo } from "react";
 import Sidebar from "./components/Sidebar";
 import TriageMode from "./components/TriageMode";
 import FocusMode from "./components/FocusMode";
 
 import ResetMode from "./components/ResetMode";
-import MascotOrb from "./components/MascotOrb";
 import CalendarMode from "./components/CalendarMode";
 import MindLetter from "./components/MindLetter";
 import HomeMode from "./components/HomeMode";
@@ -94,27 +93,15 @@ const MODE_NAV: { id: AppMode; label: string; icon: React.ReactNode }[] = [
   },
 ];
 
-// ── speak utility ──────────────────────────────────────────────────────
-function speakText(text: string) {
-  if (typeof window === "undefined" || !window.speechSynthesis) return;
-  window.speechSynthesis.cancel();
-  const utt = new SpeechSynthesisUtterance(text);
-  utt.rate = 0.95;
-  window.speechSynthesis.speak(utt);
-}
-
 // ── Component ──────────────────────────────────────────────────────────
 export default function Dashboard() {
   const [mode, setMode]                 = useState<AppMode>("home");
   const [tasks, setTasks]               = useState<Task[]>([]);
   const [mounted, setMounted]           = useState(false);
-  const [voiceEnabled, setVoiceEnabled] = useState(false);
   const [userName, setUserName]         = useState("BrainDump");
-  const [dismissedText, setDismissedText] = useState<string | null>(null);
   const [restoredBanner, setRestoredBanner] = useState(false);
   const [showLetter, setShowLetter] = useState(false);
   const [showPanic, setShowPanic] = useState(false);
-  const lastSpeakKey = useRef<string>("");
 
   // Load tasks: instant from localStorage cache, then refresh from Supabase
   useEffect(() => {
@@ -290,33 +277,6 @@ export default function Dashboard() {
 
   const taskCount = activeTasks.length;
 
-  // nextActionText: top "now" task
-  const nextActionText = useMemo(() => {
-    const nowTask = tasks.find((t) => t.status !== "done" && t.category === "now");
-    return nowTask ? `Next up: ${nowTask.text}` : null;
-  }, [tasks]);
-
-  // Voice readback when mode is triage and tasks change (gated)
-  useEffect(() => {
-    if (!voiceEnabled || mode !== "triage") return;
-    const nowTasks = tasks.filter((t) => t.status !== "done" && t.category === "now");
-    if (nowTasks.length === 0) return;
-    const key = nowTasks[0].id;
-    if (key === lastSpeakKey.current) return;
-    lastSpeakKey.current = key;
-    speakText(`Focus on: ${nowTasks[0].text}`);
-  }, [tasks, mode, voiceEnabled]);
-
-  // Dismiss mascot orb text when nextActionText changes
-  useEffect(() => {
-    setDismissedText(null);
-  }, [nextActionText]);
-
-  const visibleNextActionText =
-    nextActionText === dismissedText ? null : nextActionText;
-
-  const speak = (text: string) => speakText(text);
-
   return (
     <div className="flex h-screen bg-[#0D0F14] overflow-hidden">
       {/* Sidebar — desktop only */}
@@ -325,8 +285,6 @@ export default function Dashboard() {
           mode={mode}
           setMode={setMode}
           taskCount={taskCount}
-          voiceEnabled={voiceEnabled}
-          setVoiceEnabled={setVoiceEnabled}
           userName={userName}
           onPanic={() => setShowPanic(true)}
         />
@@ -353,21 +311,12 @@ export default function Dashboard() {
         )}
         {mode === "focus" && <FocusMode tasks={tasks} />}
         {mode === "reset" && (
-          <ResetMode speak={speak} voiceEnabled={voiceEnabled} />
+          <ResetMode />
         )}
         {mode === "calendar" && (
           <CalendarMode tasks={tasks} updateTask={updateTask} />
         )}
       </main>
-
-      {/* Mascot Orb — hidden on home (AdvisorMic replaces it) */}
-      {mode !== "home" && (
-        <MascotOrb
-          nextActionText={visibleNextActionText}
-          onDismiss={() => setDismissedText(nextActionText)}
-          speak={speak}
-        />
-      )}
 
       {showLetter && (
         <MindLetter
