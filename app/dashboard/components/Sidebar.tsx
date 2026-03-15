@@ -94,7 +94,7 @@ export default function Sidebar({ mode, setMode, taskCount, voiceEnabled, setVoi
 
   return (
     <aside className="p-4 pr-0 h-screen">
-      <div className="h-full w-56 bg-[#13161C] rounded-2xl border border-[#1D9E75]/10 flex flex-col py-5 px-3 overflow-hidden">
+      <div className="h-full w-56 bg-[#13161C] rounded-2xl border-2 border-[#1D9E75]/10 flex flex-col py-5 px-3 overflow-hidden">
         {/* BrainDump logo at top */}
         <div className="px-2 mb-5">
           <span className="font-serif text-xl text-[#E8EAF0]">
@@ -133,7 +133,7 @@ export default function Sidebar({ mode, setMode, taskCount, voiceEnabled, setVoi
             style={{
               color: "#D85A30",
               background: "rgba(216,90,48,0.12)",
-              border: "1px solid rgba(216,90,48,0.28)",
+              border: "2px solid rgba(216,90,48,0.28)",
             }}
           >
             <span className="w-1.5 h-1.5 rounded-full bg-[#D85A30] shrink-0 animate-pulse" />
@@ -145,8 +145,8 @@ export default function Sidebar({ mode, setMode, taskCount, voiceEnabled, setVoi
         </div>
 
         {/* Bottom row: profile + settings */}
-        <div className="flex items-center justify-between px-2 pt-3 border-t border-[#1D9E75]/10">
-          <div className="w-7 h-7 rounded-full bg-[#1D9E75]/20 border border-[#1D9E75]/30 flex items-center justify-center shrink-0">
+        <div className="flex items-center justify-between px-2 pt-3 border-t-2 border-[#1D9E75]/10">
+          <div className="w-7 h-7 rounded-full bg-[#1D9E75]/20 border-2 border-[#1D9E75]/30 flex items-center justify-center shrink-0">
             <span className="font-sans text-[10px] font-semibold text-[#5DCAA5]">{initials}</span>
           </div>
           <button

@@ -21,7 +21,7 @@ function SkeletonSteps() {
           key={i}
           className="flex items-center gap-3 px-4 py-3 rounded-lg bg-[#13161C]"
         >
-          <div className="w-4 h-4 shrink-0 rounded border border-[#A0A8B8]/10 bg-[#0D0F14]" />
+          <div className="w-4 h-4 shrink-0 rounded border-2 border-[#A0A8B8]/10 bg-[#0D0F14]" />
           <div
             className="h-3 rounded-full bg-[#A0A8B8]/8 animate-pulse"
             style={{ width: `${w}%` }}
@@ -212,7 +212,7 @@ export default function FocusMode({ tasks }: Props) {
                     setSelectedMinutes(mins);
                     setTimeLeft(mins * 60);
                   }}
-                  className={`font-sans text-sm px-3 py-1.5 rounded-lg border transition-all duration-150 ${
+                  className={`font-sans text-sm px-3 py-1.5 rounded-lg border-2 transition-all duration-150 ${
                     selectedMinutes === mins
                       ? "bg-[#1D9E75]/15 border-[#1D9E75]/40 text-[#5DCAA5]"
                       : "bg-transparent border-[#A0A8B8]/10 text-[#A0A8B8]/40 hover:border-[#A0A8B8]/20 hover:text-[#A0A8B8]/60"
@@ -282,7 +282,7 @@ export default function FocusMode({ tasks }: Props) {
         {/* Break overlay banners */}
         {isBreak && !isRunning && (
           <div
-            className="mt-4 px-4 py-3 rounded-xl border text-center animate-fade-up"
+            className="mt-4 px-4 py-3 rounded-xl border-2 text-center animate-fade-up"
             style={{
               background: "rgba(239,159,39,0.08)",
               borderColor: "rgba(239,159,39,0.2)",
@@ -298,7 +298,7 @@ export default function FocusMode({ tasks }: Props) {
             </p>
             <button
               onClick={() => setIsRunning(true)}
-              className="mt-3 font-sans text-xs px-4 py-1.5 rounded-lg bg-[#EF9F27]/10 hover:bg-[#EF9F27]/20 border border-[#EF9F27]/20 text-[#EF9F27] transition-colors duration-150"
+              className="mt-3 font-sans text-xs px-4 py-1.5 rounded-lg bg-[#EF9F27]/10 hover:bg-[#EF9F27]/20 border-2 border-[#EF9F27]/20 text-[#EF9F27] transition-colors duration-150"
             >
               Start break timer
             </button>
@@ -360,7 +360,7 @@ export default function FocusMode({ tasks }: Props) {
                 }`}
               >
                 <span
-                  className={`mt-0.5 w-4 h-4 shrink-0 rounded border flex items-center justify-center transition-colors ${
+                  className={`mt-0.5 w-4 h-4 shrink-0 rounded border-2 flex items-center justify-center transition-colors ${
                     checked.has(i)
                       ? "bg-[#1D9E75] border-[#1D9E75]"
                       : "border-[#A0A8B8]/20"

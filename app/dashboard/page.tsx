@@ -327,7 +327,7 @@ export default function Dashboard() {
       {/* Main content */}
       <main className="flex-1 overflow-y-auto pb-16 sm:pb-0 relative">
         {restoredBanner && (
-          <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 bg-[#1D9E75]/10 border border-[#1D9E75]/30 text-[#5DCAA5] font-sans text-sm px-4 py-2 rounded-full pointer-events-none">
+          <div className="fixed top-4 left-1/2 -translate-x-1/2 z-50 bg-[#1D9E75]/10 border-2 border-[#1D9E75]/30 text-[#5DCAA5] font-sans text-sm px-4 py-2 rounded-full pointer-events-none">
             Your dump was saved — welcome back
           </div>
         )}
@@ -372,7 +372,7 @@ export default function Dashboard() {
       )}
 
       {/* Mobile bottom nav */}
-      <nav className="sm:hidden fixed bottom-0 inset-x-0 bg-[#13161C]/95 backdrop-blur-sm border-t border-[#1D9E75]/10 flex z-50">
+      <nav className="sm:hidden fixed bottom-0 inset-x-0 bg-[#13161C]/95 backdrop-blur-sm border-t-2 border-[#1D9E75]/10 flex z-50">
         {MODE_NAV.map((item) => (
           <button
             key={item.id}

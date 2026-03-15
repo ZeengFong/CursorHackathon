@@ -181,7 +181,7 @@ export default function CalendarMode({ tasks, updateTask }: Props) {
           </div>
 
           {/* Calendar grid */}
-          <div className="grid grid-cols-7 gap-px bg-[#1D9E75]/6 rounded-xl overflow-hidden border border-[#1D9E75]/8">
+          <div className="grid grid-cols-7 gap-px bg-[#1D9E75]/6 rounded-xl overflow-hidden border-2 border-[#1D9E75]/8">
             {cells.map((day, idx) => {
               if (day === null) {
                 return <div key={`empty-${idx}`} className="bg-[#0D0F14] h-[72px] sm:h-[88px]" />;
@@ -218,7 +218,7 @@ export default function CalendarMode({ tasks, updateTask }: Props) {
                           style={{ backgroundColor: CATEGORY_COLOR[t.category] }}
                         />
                         {tooltipTaskId === t.id && (
-                          <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 z-20 w-44 bg-[#13161C] border border-[#1D9E75]/25 rounded-lg px-2.5 py-2 shadow-lg pointer-events-none">
+                          <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 z-20 w-44 bg-[#13161C] border-2 border-[#1D9E75]/25 rounded-lg px-2.5 py-2 shadow-lg pointer-events-none">
                             <p className="font-sans text-[13px] text-[#E8EAF0] leading-snug">
                               {t.text}
                             </p>
@@ -255,7 +255,7 @@ export default function CalendarMode({ tasks, updateTask }: Props) {
                 {upcomingTasks.map((t) => (
                   <div
                     key={t.id}
-                    className="flex items-center gap-2 px-3 py-2.5 rounded-lg bg-[#13161C] border border-[#1D9E75]/8 relative"
+                    className="flex items-center gap-2 px-3 py-2.5 rounded-lg bg-[#13161C] border-2 border-[#1D9E75]/8 relative"
                   >
                     <div
                       className="w-1.5 h-1.5 rounded-full shrink-0"

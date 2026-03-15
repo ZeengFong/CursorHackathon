@@ -61,7 +61,7 @@ export default function MascotOrb({ nextActionText, onDismiss, speak }: Props) {
           <div
             className="
               absolute bottom-full right-0 mb-3 w-52
-              bg-[#13161C] border border-[#1D9E75]/30 rounded-xl p-3
+              bg-[#13161C] border-2 border-[#1D9E75]/30 rounded-xl p-3
               shadow-[0_8px_32px_rgba(0,0,0,0.5)]
               opacity-0 pointer-events-none
               group-hover:opacity-100 group-hover:pointer-events-auto

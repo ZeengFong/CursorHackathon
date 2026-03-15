@@ -103,7 +103,7 @@ export default function MindLetter({ tasks, onClose }: MindLetterProps) {
         className="relative max-w-lg w-full rounded-2xl p-8"
         style={{
           background: '#13161C',
-          border: '1px solid rgba(29,158,117,0.2)',
+          border: '2px solid rgba(29,158,117,0.2)',
           animation: 'fadeSlideUp 300ms ease-out forwards',
         }}
         onClick={e => e.stopPropagation()}
@@ -183,7 +183,7 @@ export default function MindLetter({ tasks, onClose }: MindLetterProps) {
               className="font-sans text-sm px-4 py-1.5 rounded-lg transition-colors duration-150"
               style={{
                 color: '#A0A8B8',
-                border: '1px solid rgba(255,255,255,0.08)',
+                border: '2px solid rgba(255,255,255,0.08)',
                 background: 'transparent',
               }}
               onMouseEnter={e => {

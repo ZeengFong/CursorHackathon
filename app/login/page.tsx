@@ -56,7 +56,7 @@ function Field({ error, className = "", ...props }: InputProps) {
     <div className="flex flex-col gap-1">
       <input
         {...props}
-        className={`w-full bg-[#0D0F14] border rounded-xl py-3 px-4 font-sans text-[14px] text-[#E8EAF0] placeholder-[#A0A8B8]/40 outline-none transition-[border-color,box-shadow] duration-200 focus:border-[#1D9E75]/60 focus:shadow-[0_0_0_3px_rgba(29,158,117,0.08)] ${
+        className={`w-full bg-[#0D0F14] border-2 rounded-xl py-3 px-4 font-sans text-[14px] text-[#E8EAF0] placeholder-[#A0A8B8]/40 outline-none transition-[border-color,box-shadow] duration-200 focus:border-[#1D9E75]/60 focus:shadow-[0_0_0_3px_rgba(29,158,117,0.08)] ${
           error ? "border-[#D85A30]/50" : "border-white/8"
         } ${className}`}
       />
@@ -227,7 +227,7 @@ export default function LoginPage() {
           transform: visible ? "translateY(0)" : "translateY(16px)",
         }}
       >
-        <div className="bg-[#13161C] border border-white/6 rounded-2xl p-7 shadow-[0_32px_64px_rgba(0,0,0,0.5)]">
+        <div className="bg-[#13161C] border-2 border-white/6 rounded-2xl p-7 shadow-[0_32px_64px_rgba(0,0,0,0.5)]">
 
           {/* Logo */}
           <div className="text-center mb-6">
@@ -240,7 +240,7 @@ export default function LoginPage() {
           <div className="flex items-center justify-center gap-6 mb-7">
             <button
               onClick={() => { setTab("signin"); setSiMsg(null); }}
-              className={`font-sans text-sm pb-0.5 border-b transition-colors duration-150 ${
+              className={`font-sans text-sm pb-0.5 border-b-2 transition-colors duration-150 ${
                 tab === "signin"
                   ? "text-[#5DCAA5] border-[#5DCAA5]"
                   : "text-[#A0A8B8]/50 border-transparent hover:text-[#A0A8B8]"
@@ -250,7 +250,7 @@ export default function LoginPage() {
             </button>
             <button
               onClick={() => { setTab("signup"); setSuMsg(null); }}
-              className={`font-sans text-sm pb-0.5 border-b transition-colors duration-150 ${
+              className={`font-sans text-sm pb-0.5 border-b-2 transition-colors duration-150 ${
                 tab === "signup"
                   ? "text-[#5DCAA5] border-[#5DCAA5]"
                   : "text-[#A0A8B8]/50 border-transparent hover:text-[#A0A8B8]"
@@ -283,7 +283,7 @@ export default function LoginPage() {
                     onChange={(e) => setSiPw(e.target.value)}
                     onBlur={() => setSiErrors((p) => ({ ...p, pw: validatePw(siPw) }))}
                     autoComplete="current-password"
-                    className={`w-full bg-[#0D0F14] border rounded-xl py-3 pl-4 pr-11 font-sans text-[14px] text-[#E8EAF0] placeholder-[#A0A8B8]/40 outline-none transition-[border-color,box-shadow] duration-200 focus:border-[#1D9E75]/60 focus:shadow-[0_0_0_3px_rgba(29,158,117,0.08)] ${
+                    className={`w-full bg-[#0D0F14] border-2 rounded-xl py-3 pl-4 pr-11 font-sans text-[14px] text-[#E8EAF0] placeholder-[#A0A8B8]/40 outline-none transition-[border-color,box-shadow] duration-200 focus:border-[#1D9E75]/60 focus:shadow-[0_0_0_3px_rgba(29,158,117,0.08)] ${
                       siErrors.pw ? "border-[#D85A30]/50" : "border-white/8"
                     }`}
                   />
@@ -312,8 +312,8 @@ export default function LoginPage() {
               {siMsg && (
                 <p className={`text-[12.5px] font-sans px-3 py-2 rounded-lg ${
                   siMsg.type === "error"
-                    ? "text-[#E07878] bg-[#D85A30]/8 border border-[#D85A30]/15"
-                    : "text-[#5DCAA5] bg-[#1D9E75]/8 border border-[#1D9E75]/15"
+                    ? "text-[#E07878] bg-[#D85A30]/8 border-2 border-[#D85A30]/15"
+                    : "text-[#5DCAA5] bg-[#1D9E75]/8 border-2 border-[#1D9E75]/15"
                 }`}>
                   {siMsg.text}
                 </p>
@@ -361,7 +361,7 @@ export default function LoginPage() {
                     onChange={(e) => setSuPw(e.target.value)}
                     onBlur={() => setSuErrors((p) => ({ ...p, pw: validatePw(suPw) }))}
                     autoComplete="new-password"
-                    className={`w-full bg-[#0D0F14] border rounded-xl py-3 pl-4 pr-11 font-sans text-[14px] text-[#E8EAF0] placeholder-[#A0A8B8]/40 outline-none transition-[border-color,box-shadow] duration-200 focus:border-[#1D9E75]/60 focus:shadow-[0_0_0_3px_rgba(29,158,117,0.08)] ${
+                    className={`w-full bg-[#0D0F14] border-2 rounded-xl py-3 pl-4 pr-11 font-sans text-[14px] text-[#E8EAF0] placeholder-[#A0A8B8]/40 outline-none transition-[border-color,box-shadow] duration-200 focus:border-[#1D9E75]/60 focus:shadow-[0_0_0_3px_rgba(29,158,117,0.08)] ${
                       suErrors.pw ? "border-[#D85A30]/50" : "border-white/8"
                     }`}
                   />
@@ -399,8 +399,8 @@ export default function LoginPage() {
               {suMsg && (
                 <p className={`text-[12.5px] font-sans px-3 py-2 rounded-lg ${
                   suMsg.type === "error"
-                    ? "text-[#E07878] bg-[#D85A30]/8 border border-[#D85A30]/15"
-                    : "text-[#5DCAA5] bg-[#1D9E75]/8 border border-[#1D9E75]/15"
+                    ? "text-[#E07878] bg-[#D85A30]/8 border-2 border-[#D85A30]/15"
+                    : "text-[#5DCAA5] bg-[#1D9E75]/8 border-2 border-[#1D9E75]/15"
                 }`}>
                   {suMsg.text}
                 </p>
@@ -427,7 +427,7 @@ export default function LoginPage() {
           <button
             type="button"
             onClick={handleGoogle}
-            className="w-full flex items-center justify-center gap-3 py-2.5 px-4 bg-white hover:bg-gray-50 border border-white/10 rounded-xl font-sans text-[14px] text-gray-700 font-medium transition-colors"
+            className="w-full flex items-center justify-center gap-3 py-2.5 px-4 bg-white hover:bg-gray-50 border-2 border-white/10 rounded-xl font-sans text-[14px] text-gray-700 font-medium transition-colors"
           >
             <GoogleLogo />
             Continue with Google

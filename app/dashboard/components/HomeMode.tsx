@@ -178,7 +178,7 @@ export default function HomeMode({ tasks, userName, updateTask, addTasks, delete
         {/* Brain dump input — narrowed by 0.2*orbRadius (24px) from right, left edge anchored */}
         <div className="flex-1 min-w-0 lg:pr-[30px]" style={{ animation: "fadeSlideUp 600ms ease-out 100ms both" }}>
           {dumpDone ? (
-            <div className="rounded-2xl border border-[#1D9E75]/20 bg-[#13161C] p-10 flex items-center justify-center min-h-[200px]">
+            <div className="rounded-2xl border-2 border-[#1D9E75]/20 bg-[#13161C] p-10 flex items-center justify-center min-h-[200px]">
               <p className="font-serif italic text-xl text-[#5DCAA5]" style={{ animation: "fadeSlideUp 300ms ease-out" }}>
                 Tasks added
               </p>

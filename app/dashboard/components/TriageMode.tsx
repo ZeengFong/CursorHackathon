@@ -150,7 +150,7 @@ function DatePickerPopup({ value, onChange, onClose, anchorRef }: {
           top: pos.top,
           left: pos.left,
           background: "#13161C",
-          border: "1.5px solid #5DCAA5",
+          border: "3px solid #5DCAA5",
           width: 260,
           fontSize: "13px",
         }}
@@ -217,7 +217,7 @@ function DatePickerPopup({ value, onChange, onClose, anchorRef }: {
         </div>
 
         {/* Today shortcut */}
-        <div className="mt-2 pt-2 flex justify-between items-center" style={{ borderTop: "1px solid rgba(29,158,117,0.12)" }}>
+        <div className="mt-2 pt-2 flex justify-between items-center" style={{ borderTop: "2px solid rgba(29,158,117,0.12)" }}>
           <button
             onClick={() => { setViewYear(today.getFullYear()); setViewMonth(today.getMonth()); selectDay(today.getDate()); }}
             className="font-sans text-[11px] text-[#5DCAA5] hover:text-[#7DDBB8] transition-colors px-2 py-0.5 rounded hover:bg-[#1D9E75]/8"
@@ -283,7 +283,7 @@ function DraggableTaskCard({
       {...attributes}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
-      className="relative rounded-lg bg-[#13161C] border px-4 py-3.5 outline-none focus-visible:ring-1 focus-visible:ring-[#1D9E75]/50 select-none touch-none"
+      className="relative rounded-lg bg-[#13161C] border-2 px-4 py-3.5 outline-none focus-visible:ring-1 focus-visible:ring-[#1D9E75]/50 select-none touch-none"
       style={style}
     >
       <div className="flex items-start gap-1 flex-wrap">
@@ -343,7 +343,7 @@ function TaskDragOverlay({ task }: { task: Task }) {
 
   return (
     <div
-      className="rounded-lg bg-[#13161C] border border-[#5DCAA5]/30 px-4 py-3.5 pointer-events-none"
+      className="rounded-lg bg-[#13161C] border-2 border-[#5DCAA5]/30 px-4 py-3.5 pointer-events-none"
       style={{
         boxShadow: "0 12px 40px rgba(0,0,0,0.5), 0 0 0 1px rgba(93,202,165,0.2)",
         transform: "scale(1.03) rotate(-1deg)",
@@ -496,7 +496,7 @@ function UpcomingTaskCard({
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
       onClick={() => onPromote(task.id)}
-      className="relative rounded-lg border px-4 py-3.5 cursor-pointer transition-all duration-150"
+      className="relative rounded-lg border-2 px-4 py-3.5 cursor-pointer transition-all duration-150"
       style={{
         background: isHovered ? "rgba(93,202,165,0.06)" : "#13161C",
         borderColor: isHovered ? "rgba(93,202,165,0.25)" : "rgba(29,158,117,0.08)",

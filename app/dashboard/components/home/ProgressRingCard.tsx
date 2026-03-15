@@ -26,7 +26,7 @@ export default function ProgressBattery({ completed, total, delay = 0 }: Props) 
       style={{ animation: `fadeSlideUp 600ms ease-out ${delay}ms both` }}
     >
       {/* Battery body */}
-      <div className="relative flex-1 h-full min-h-[180px] rounded-2xl border border-[#1D9E75]/8 bg-[#0D0F14] overflow-hidden transition-all duration-300 hover:border-[#1D9E75]/20 hover:shadow-[0_0_20px_rgba(29,158,117,0.08)]">
+      <div className="relative flex-1 h-full min-h-[180px] rounded-2xl border-2 border-[#A0A8B8]/15 bg-[#0D0F14] overflow-hidden transition-all duration-300 hover:border-[#1D9E75]/20 hover:shadow-[0_0_20px_rgba(29,158,117,0.08)]">
         {total > 0 && (
           <div
             className="absolute inset-y-0 left-0 rounded-lg"

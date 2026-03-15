@@ -54,7 +54,7 @@ export default function WeekStripCard({ tasks, weekStart, delay = 0 }: Props) {
 
   return (
     <div
-      className="rounded-2xl border border-[#1D9E75]/8 bg-[#13161C] p-5 sm:p-6 transition-all duration-300 hover:border-[#1D9E75]/20 hover:shadow-[0_0_20px_rgba(29,158,117,0.08)]"
+      className="rounded-2xl border-2 border-[#1D9E75]/8 bg-[#13161C] p-5 sm:p-6 transition-all duration-300 hover:border-[#1D9E75]/20 hover:shadow-[0_0_20px_rgba(29,158,117,0.08)]"
       style={{ animation: `fadeSlideUp 600ms ease-out ${delay}ms both` }}
     >
       <div className="grid grid-cols-7 gap-1">
@@ -70,7 +70,7 @@ export default function WeekStripCard({ tasks, weekStart, delay = 0 }: Props) {
               key={day.iso}
               className={`flex flex-col items-center rounded-xl transition-colors min-h-[140px] py-3 px-1 ${
                 day.isToday
-                  ? "bg-[#1D9E75]/8 border border-[#1D9E75]/20"
+                  ? "bg-[#1D9E75]/8 border-2 border-[#1D9E75]/20"
                   : "hover:bg-[#0D0F14]/40"
               }`}
               style={{ animation: `slideInLeft 400ms ease-out ${delay + i * 60}ms both` }}

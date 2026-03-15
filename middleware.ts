@@ -28,8 +28,8 @@ export async function middleware(req: NextRequest) {
     return NextResponse.redirect(new URL("/login", req.url));
   }
 
-  // If signed in and on login page, redirect to dashboard
-  if (session && req.nextUrl.pathname === "/login") {
+  // If signed in and on login or landing page, redirect to dashboard
+  if (session && (req.nextUrl.pathname === "/login" || req.nextUrl.pathname === "/")) {
     return NextResponse.redirect(new URL("/dashboard", req.url));
   }
 
@@ -37,5 +37,5 @@ export async function middleware(req: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/dashboard/:path*", "/login"],
+  matcher: ["/dashboard/:path*", "/login", "/"],
 };

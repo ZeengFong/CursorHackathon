@@ -90,7 +90,7 @@ export default function ResetMode({ speak, voiceEnabled }: Props) {
         <div className="relative flex items-center justify-center w-40 h-40">
           <div className="animate-breathe absolute inset-0 rounded-full bg-[#1D9E75]/6" />
           <div
-            className="animate-breathe absolute w-32 h-32 rounded-full border border-[#1D9E75]/25 bg-[#1D9E75]/10"
+            className="animate-breathe absolute w-32 h-32 rounded-full border-2 border-[#1D9E75]/25 bg-[#1D9E75]/10"
             style={{ animationDelay: "0.4s" }}
           />
           <div

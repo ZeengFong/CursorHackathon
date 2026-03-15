@@ -116,7 +116,7 @@ export default function DumpMode({ onTasksAdded, onDone }: Props) {
         </div>
 
         {/* Clarifying question bubble */}
-        <div className="mb-6 rounded-xl bg-[#1A1E27] border border-[#1D9E75]/20 px-5 py-4">
+        <div className="mb-6 rounded-xl bg-[#1A1E27] border-2 border-[#1D9E75]/20 px-5 py-4">
           <p className="font-sans text-sm text-[#E8EAF0] leading-relaxed">{clarifyingQuestion}</p>
         </div>
 
@@ -130,7 +130,7 @@ export default function DumpMode({ onTasksAdded, onDone }: Props) {
             onKeyDown={(e) => e.key === "Enter" && !loading && handleClarifySubmit()}
             placeholder="Type your answer…"
             disabled={loading}
-            className="flex-1 rounded-lg bg-[#13161C] border border-[#1D9E75]/20 px-4 py-3 font-sans text-sm text-[#E8EAF0] placeholder-[#A0A8B8]/30 outline-none focus:border-[#1D9E75]/50 disabled:opacity-50"
+            className="flex-1 rounded-lg bg-[#13161C] border-2 border-[#1D9E75]/20 px-4 py-3 font-sans text-sm text-[#E8EAF0] placeholder-[#A0A8B8]/30 outline-none focus:border-[#1D9E75]/50 disabled:opacity-50"
           />
           <button
             onClick={handleClarifySubmit}

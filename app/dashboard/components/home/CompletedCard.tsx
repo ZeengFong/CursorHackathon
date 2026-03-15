@@ -22,7 +22,7 @@ const SOURCE_COLOR: Record<string, string> = {
 export default function CompletedCard({ tasks, delay = 0 }: Props) {
   return (
     <div
-      className="rounded-2xl border border-[#1D9E75]/8 bg-[#13161C] p-6 transition-all duration-300 hover:border-[#1D9E75]/20 hover:shadow-[0_0_20px_rgba(29,158,117,0.08)] flex flex-col min-h-[180px]"
+      className="rounded-2xl border-2 border-[#1D9E75]/8 bg-[#13161C] p-6 transition-all duration-300 hover:border-[#1D9E75]/20 hover:shadow-[0_0_20px_rgba(29,158,117,0.08)] flex flex-col min-h-[180px]"
       style={{ animation: `fadeSlideUp 600ms ease-out ${delay}ms both` }}
     >
       <h3 className="font-sans text-xs font-medium text-[#A0A8B8]/50 uppercase tracking-wider mb-3">

@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { MicIcon } from "@/app/components/ui/mic";
 import type { Task } from "../../page";
 
 interface AdvisorMicProps {
@@ -22,8 +21,9 @@ export default function AdvisorMic({
   const [isRecording, setIsRecording] = useState(false);
   const [isLoading, setIsLoading]     = useState(false);
   const [isPlaying, setIsPlaying]     = useState(false);
-  const [summary, setSummary]         = useState<string | null>(null);
-  const [isMicHovered, setIsMicHovered] = useState(false);
+  const [replyText, setReplyText]     = useState<string | null>(null);
+  const [typedChars, setTypedChars]   = useState(0);
+  const [isHovered, setIsHovered]     = useState(false);
   const [conversationHistory, setConversationHistory] = useState<
     { role: "user" | "assistant"; content: string }[]
   >([]);
@@ -32,11 +32,30 @@ export default function AdvisorMic({
   const transcriptRef  = useRef<string>("");
   const audioRef       = useRef<HTMLAudioElement | null>(null);
   const shiftRecordingRef = useRef(false);
+  const replyTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const stopPlayback = () => {
     audioRef.current?.pause();
     setIsPlaying(false);
   };
+
+  // Typewriter effect for reply text
+  useEffect(() => {
+    if (!replyText || typedChars >= replyText.length) return;
+    const timer = setTimeout(() => setTypedChars((c) => c + 1), 25);
+    return () => clearTimeout(timer);
+  }, [replyText, typedChars]);
+
+  // Auto-dismiss reply after fully typed + 6s
+  useEffect(() => {
+    if (replyText && typedChars >= replyText.length) {
+      replyTimerRef.current = setTimeout(() => {
+        setReplyText(null);
+        setTypedChars(0);
+      }, 6000);
+      return () => { if (replyTimerRef.current) clearTimeout(replyTimerRef.current); };
+    }
+  }, [replyText, typedChars]);
 
   // ── Right Shift keyboard shortcut ─────────────────────────────────
   const startRecordingRef = useRef<() => void>(() => {});
@@ -45,7 +64,6 @@ export default function AdvisorMic({
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.code === "ShiftRight" && !e.repeat && !shiftRecordingRef.current) {
-        // Don't trigger while typing in inputs
         const tag = (document.activeElement as HTMLElement)?.tagName;
         if (tag === "INPUT" || tag === "TEXTAREA" || (document.activeElement as HTMLElement)?.isContentEditable) return;
         shiftRecordingRef.current = true;
@@ -68,6 +86,10 @@ export default function AdvisorMic({
 
   const sendToAdvisor = async (userMessage: string) => {
     setIsLoading(true);
+    setReplyText(null);
+    setTypedChars(0);
+    if (replyTimerRef.current) clearTimeout(replyTimerRef.current);
+
     try {
       const advisorRes = await fetch("/api/ai/advisor", {
         method: "POST",
@@ -99,7 +121,9 @@ export default function AdvisorMic({
         { role: "assistant", content: advisor.reply },
       ]);
 
-      setSummary(advisor.displaySummary ?? null);
+      // Show reply as floating typewriter dialogue
+      setReplyText(advisor.displaySummary || advisor.reply || "Done.");
+      setTypedChars(0);
 
       // ── Execute actions if AI is confident ──────────────────────────
       const actions = advisor.actions ?? [];
@@ -138,10 +162,12 @@ export default function AdvisorMic({
         setTimeout(() => onHighlight(new Set()), 6000);
       }
 
+      // TTS — truncate to 500 chars
+      const ttsText = (advisor.reply || "").slice(0, 500);
       const ttsRes = await fetch("/api/tts", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text: advisor.reply, voiceId: "calm" }),
+        body: JSON.stringify({ text: ttsText, voiceId: "calm" }),
       });
       if (!ttsRes.ok) {
         const errText = await ttsRes.text();
@@ -198,6 +224,10 @@ export default function AdvisorMic({
     rec.start();
     recognitionRef.current = rec;
     setIsRecording(true);
+
+    // Clear previous reply when starting new recording
+    setReplyText(null);
+    setTypedChars(0);
   };
 
   const stopRecording = async () => {
@@ -205,7 +235,7 @@ export default function AdvisorMic({
     setIsRecording(false);
     setIsLoading(true);
 
-    // Keep recognition alive for 2s to capture trailing speech
+    // Keep recognition alive for 3.5s to capture trailing speech
     await new Promise((r) => setTimeout(r, 3500));
     recognitionRef.current?.stop();
     // Small grace period for final onresult event
@@ -224,69 +254,145 @@ export default function AdvisorMic({
   startRecordingRef.current = startRecording;
   stopRecordingRef.current = stopRecording;
 
-  const micState = isPlaying ? "playing" : isLoading ? "loading" : isRecording ? "recording" : "idle";
-  const micColor = { idle: "#A0A8B8", recording: "#EF4444", loading: "#EF9F27", playing: "#1D9E75" }[micState];
-  const micLabel = { idle: "Hold to ask", recording: "Release\u2026", loading: "Thinking\u2026", playing: "Tap to stop" }[micState];
+  const state = isPlaying ? "playing" : isLoading ? "loading" : isRecording ? "recording" : "idle";
 
   return (
-    <div className="flex flex-col items-end gap-1 shrink-0">
-      {summary && (
-        <p className="font-sans text-[10px] text-[#A0A8B8]/50 max-w-[160px] text-right leading-tight">
-          {summary}
-        </p>
+    <div className="relative flex flex-col items-center gap-1 shrink-0">
+      {/* Floating dialogue bubble — above the orb */}
+      {replyText && (
+        <div
+          className="absolute bottom-full right-0 mb-3 w-[240px] pointer-events-none"
+          style={{ animation: "fadeSlideUp 400ms ease-out" }}
+        >
+          <div className="rounded-xl bg-[#13161C]/95 backdrop-blur-md border-none px-3 py-2.5 shadow-lg shadow-black/20">
+            <p className="font-sans text-[11px] leading-relaxed" style={{
+              color: "rgba(232,234,240,0.85)",
+              textShadow: "0 0 8px rgba(232,234,240,0.15), 0 0 20px rgba(93,202,165,0.08)",
+            }}>
+              {replyText.slice(0, typedChars)}
+              {typedChars < replyText.length && (
+                <span className="inline-block w-[1.5px] h-[0.9em] bg-[#5DCAA5]/60 ml-[1px] align-middle" style={{ animation: "blink 1s step-end infinite" }} />
+              )}
+            </p>
+          </div>
+          <div className="flex justify-end mr-4 -mt-1">
+            <span className="text-[14px] leading-none" style={{
+              color: "rgba(255,255,255,0.7)",
+              textShadow: "0 0 10px rgba(255,255,255,0.4), 0 0 25px rgba(93,202,165,0.3)",
+            }}>⌄</span>
+          </div>
+        </div>
       )}
 
-      <div className="relative">
+      {/* Padded wrapper — gives glow room to radiate without clipping */}
+      <div className="relative" style={{ width: 75 + 60, height: 75 + 60 }}>
         <button
           onMouseDown={startRecording}
           onMouseUp={stopRecording}
           onTouchStart={(e) => { e.preventDefault(); startRecording(); }}
           onTouchEnd={(e) => { e.preventDefault(); stopRecording(); }}
           onClick={isPlaying ? stopPlayback : undefined}
-          onMouseEnter={() => setIsMicHovered(true)}
-          onMouseLeave={() => setIsMicHovered(false)}
+          onMouseEnter={() => setIsHovered(true)}
+          onMouseLeave={() => setIsHovered(false)}
           disabled={isLoading}
-          aria-label={micLabel}
-          style={{ borderColor: micColor, color: micColor }}
-          className="relative w-10 h-10 rounded-full border-2 flex items-center justify-center transition-all duration-200 hover:opacity-80 disabled:opacity-40 select-none"
+          aria-label={state === "idle" ? "Hold to speak" : state === "recording" ? "Release to send" : state === "loading" ? "Processing" : "Tap to stop"}
+          className="absolute select-none"
+          style={{
+            top: 30,
+            left: 30,
+            width: 75,
+            height: 75,
+            transform: state === "loading" ? "translateY(-6px)" : "translateY(0)",
+            transition: "transform 0.6s cubic-bezier(0.4, 0, 0.2, 1)",
+          }}
         >
-          {isRecording && (
-            <span className="absolute inset-0 rounded-full animate-ping opacity-25" style={{ backgroundColor: micColor }} />
-          )}
-          {micState === "loading" ? (
-              <svg className="w-4 h-4 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83" />
-              </svg>
-          ) : micState === "playing" ? (
-            <svg className="w-3.5 h-3.5" viewBox="0 0 20 20" fill="currentColor">
-              <rect x="4" y="4" width="12" height="12" rx="1" />
-            </svg>
-          ) : (
-            <MicIcon/>
-          )}
-        </button>
+          {/* Circular glow — tight radial gradient hugging the orb edge */}
+          <div className="absolute" style={{
+            inset: -10,
+            borderRadius: "50%",
+            background: "radial-gradient(circle, rgba(45,212,160,0.3) 40%, rgba(29,158,117,0.15) 60%, transparent 78%)",
+            filter: state === "loading"
+              ? "brightness(2.5)"
+              : state === "recording"
+              ? "brightness(2)"
+              : state === "playing"
+              ? "brightness(1.6)"
+              : "brightness(1.3)",
+            opacity: state === "loading" ? 0.9 : state === "recording" ? 0.8 : 0.6,
+            animation: "orbRotate 8s linear infinite",
+            transition: "filter 0.6s ease, opacity 0.6s ease",
+          }} />
 
-        {/* Keyboard shortcut tooltip */}
-        {isMicHovered && micState === "idle" && (
-          <div
-            className="absolute right-12 top-1/2 -translate-y-1/2 whitespace-nowrap font-sans text-[10px] text-[#A0A8B8]/60 flex items-center gap-1.5 pointer-events-none"
-            style={{ animation: "fadeSlideUp 120ms ease-out" }}
-          >
-            <span>or hold</span>
-            <kbd className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-medium tracking-wide"
-              style={{
-                background: "rgba(160,168,184,0.08)",
-                border: "1px solid rgba(160,168,184,0.15)",
-                color: "#A0A8B8",
-              }}
-            >
-              R Shift
-            </kbd>
+          {/* Second circular glow — counter-rotating */}
+          <div className="absolute" style={{
+            inset: -8,
+            borderRadius: "50%",
+            background: "radial-gradient(circle, rgba(93,202,165,0.2) 42%, rgba(19,78,58,0.1) 62%, transparent 80%)",
+            filter: state === "loading"
+              ? "brightness(2.5)"
+              : "brightness(1.2)",
+            opacity: state === "loading" ? 0.85 : 0.5,
+            animation: "orbRotate 12s linear infinite reverse",
+            transition: "filter 0.6s ease, opacity 0.6s ease",
+          }} />
+
+          {/* Main orb body */}
+          <div className="absolute inset-0 rounded-full overflow-hidden" style={{
+            transform: state === "recording" ? "scale(1.075)" : "scale(1)",
+            transition: "transform 0.6s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.6s ease",
+            boxShadow: state === "loading"
+              ? "0 0 20px rgba(29,158,117,0.4), 0 0 40px rgba(93,202,165,0.15)"
+              : state === "recording"
+              ? "0 0 16px rgba(29,158,117,0.4), 0 0 30px rgba(29,158,117,0.15), inset 0 0 12px rgba(93,202,165,0.3)"
+              : state === "playing"
+              ? "0 0 14px rgba(29,158,117,0.35), 0 0 24px rgba(29,158,117,0.1)"
+              : "0 0 6px rgba(29,158,117,0.12), 0 0 12px rgba(29,158,117,0.05)",
+          }}>
+            {/* Gradient mesh layers */}
+            <div className="absolute inset-0" style={{
+              background: "radial-gradient(ellipse at 30% 20%, #2DD4A0 0%, transparent 50%), radial-gradient(ellipse at 70% 80%, #0F7A5C 0%, transparent 50%), radial-gradient(ellipse at 50% 50%, #1D9E75 0%, #134E3A 100%)",
+              animation: "orbRotate 8s linear infinite",
+            }} />
+            <div className="absolute inset-0" style={{
+              background: "radial-gradient(ellipse at 60% 30%, rgba(93,202,165,0.6) 0%, transparent 40%), radial-gradient(ellipse at 20% 70%, rgba(15,122,92,0.8) 0%, transparent 50%)",
+              animation: "orbRotate 12s linear infinite reverse",
+            }} />
+            <div className="absolute inset-0" style={{
+              background: "radial-gradient(ellipse at 40% 60%, rgba(45,212,160,0.3) 0%, transparent 35%), radial-gradient(ellipse at 80% 20%, rgba(19,78,58,0.5) 0%, transparent 40%)",
+              animation: "orbDrift 6s ease-in-out infinite",
+            }} />
+            {/* Sheen */}
+            <div className="absolute inset-0" style={{
+              background: "radial-gradient(ellipse at 35% 25%, rgba(255,255,255,0.15) 0%, transparent 50%)",
+            }} />
+
+            {/* Playing indicator — waveform bars */}
+            {state === "playing" && (
+              <div className="absolute inset-0 flex items-center justify-center gap-[2.5px]">
+                {[0, 150, 300, 150].map((d, i) => (
+                  <span key={i} className="w-[2px] rounded-full bg-white/50" style={{
+                    animation: `wave-bar 0.85s ease-in-out infinite ${d}ms`,
+                    height: "12px",
+                  }} />
+                ))}
+              </div>
+            )}
+
+            {/* R Shift hint — shown on hover */}
+            {isHovered && state === "idle" && (
+              <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                <kbd className="font-sans text-[8px] font-medium px-1.5 py-0.5 rounded-md bg-black/30 backdrop-blur-sm border-2 border-white/10 text-white/50">
+                  R Shift
+                </kbd>
+              </div>
+            )}
           </div>
-        )}
+        </button>
       </div>
 
-      <span className="font-sans text-[9px]" style={{ color: micColor }}>{micLabel}</span>
+      <span className="font-sans text-[9px] text-[#1D9E75]">
+        {{ idle: "Hold to ask", recording: "Release\u2026", loading: "Thinking\u2026", playing: "Tap to stop" }[state]}
+      </span>
     </div>
   );
 }

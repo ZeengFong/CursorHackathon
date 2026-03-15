@@ -228,7 +228,7 @@ export default function DumpInput({
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
         className={`rounded-2xl bg-[#13161C] p-6 transition-[border-color] duration-150 ${
-          isDragging ? "border border-[#1D9E75]" : "border border-[rgba(29,158,117,0.25)]"
+          isDragging ? "border-2 border-[#1D9E75]" : "border-2 border-[rgba(29,158,117,0.25)]"
         }`}
       >
         {/* Textarea */}
@@ -246,9 +246,9 @@ export default function DumpInput({
 
         {/* File chips */}
         {files.length > 0 && (
-          <div className="flex flex-wrap gap-2 mt-3 pt-3 border-t border-[#1D9E75]/10">
+          <div className="flex flex-wrap gap-2 mt-3 pt-3 border-t-2 border-[#1D9E75]/10">
             {files.map((f) => (
-              <span key={f.id} className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#0D0F14] border border-[#1D9E75]/25 font-sans text-[11px] text-[#A0A8B8]">
+              <span key={f.id} className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#0D0F14] border-2 border-[#1D9E75]/25 font-sans text-[11px] text-[#A0A8B8]">
                 <span className="max-w-[140px] truncate">{f.name}</span>
                 <span className="text-[#A0A8B8]/40">{formatSize(f.size)}</span>
                 <button onClick={() => setFiles((p) => p.filter((x) => x.id !== f.id))} className="text-[#A0A8B8]/40 hover:text-[#E8EAF0] transition-colors">
@@ -267,7 +267,7 @@ export default function DumpInput({
               onClick={toggleRecording}
               disabled={loading}
               aria-label={isRecording ? "Stop" : "Voice input"}
-              className={`relative w-9 h-9 rounded-full border flex items-center justify-center transition-colors disabled:opacity-40 ${
+              className={`relative w-9 h-9 rounded-full border-2 flex items-center justify-center transition-colors disabled:opacity-40 ${
                 isRecording
                   ? "border-[#1D9E75] bg-[#1D9E75]/12 text-[#5DCAA5]"
                   : "border-white/10 text-[#A0A8B8]/60 hover:border-white/20 hover:text-[#A0A8B8]"
@@ -281,7 +281,7 @@ export default function DumpInput({
               onClick={() => fileInputRef.current?.click()}
               disabled={loading || files.length >= 3}
               aria-label="Attach files"
-              className="w-9 h-9 rounded-full border border-white/10 text-[#A0A8B8]/60 hover:border-white/20 hover:text-[#A0A8B8] flex items-center justify-center transition-colors disabled:opacity-30"
+              className="w-9 h-9 rounded-full border-2 border-white/10 text-[#A0A8B8]/60 hover:border-white/20 hover:text-[#A0A8B8] flex items-center justify-center transition-colors disabled:opacity-30"
             >
               <PaperclipIcon />
             </button>

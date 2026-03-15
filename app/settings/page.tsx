@@ -83,7 +83,7 @@ function Section({ title, children, className = "" }: {
       <h2 className="font-sans text-[11px] font-semibold tracking-widest uppercase text-[#A0A8B8]/40 mb-3">
         {title}
       </h2>
-      <div className={`bg-[#13161C] border border-[#1D9E75]/8 rounded-xl p-5 flex flex-col gap-5 ${className}`}>
+      <div className={`bg-[#13161C] border-2 border-[#1D9E75]/8 rounded-xl p-5 flex flex-col gap-5 ${className}`}>
         {children}
       </div>
     </section>
@@ -119,7 +119,7 @@ function SaveButton({ onClick, loading, saved, label = "Save" }: {
 
 // ── Settings input style ──────────────────────────────────────────────
 const INPUT_CLS =
-  "w-full bg-[#0D0F14] border border-white/8 focus:border-[#1D9E75]/55 focus:shadow-[0_0_0_3px_rgba(29,158,117,0.07)] rounded-xl py-2.5 px-4 font-sans text-sm text-[#E8EAF0] placeholder-[#A0A8B8]/35 outline-none transition-[border-color,box-shadow] duration-200";
+  "w-full bg-[#0D0F14] border-2 border-white/8 focus:border-[#1D9E75]/55 focus:shadow-[0_0_0_3px_rgba(29,158,117,0.07)] rounded-xl py-2.5 px-4 font-sans text-sm text-[#E8EAF0] placeholder-[#A0A8B8]/35 outline-none transition-[border-color,box-shadow] duration-200";
 
 // ── Quick panic URLs ──────────────────────────────────────────────────
 const QUICK_URLS = [
@@ -366,7 +366,7 @@ export default function SettingsPage() {
             </h2>
             <div
               className="bg-[#13161C] rounded-xl p-5 flex flex-col gap-4"
-              style={{ border: "1px solid rgba(216,90,48,0.22)" }}
+              style={{ border: "2px solid rgba(216,90,48,0.22)" }}
             >
               <div>
                 <p className="font-sans text-sm font-medium text-[#E8EAF0]">Your escape hatch</p>
@@ -389,7 +389,7 @@ export default function SettingsPage() {
                     <button
                       key={url}
                       onClick={() => setPanicUrl(url)}
-                      className={`font-sans text-[11px] px-3 py-1.5 rounded-lg border transition-colors ${
+                      className={`font-sans text-[11px] px-3 py-1.5 rounded-lg border-2 transition-colors ${
                         panicUrl === url
                           ? "border-[#D85A30]/40 text-[#D85A30] bg-[#D85A30]/10"
                           : "border-white/8 text-[#A0A8B8]/50 hover:text-[#A0A8B8] hover:border-white/14"
@@ -434,7 +434,7 @@ export default function SettingsPage() {
             <h2 className="font-sans text-[11px] font-semibold tracking-widest uppercase text-[#A0A8B8]/40 mb-3">
               Task archive
             </h2>
-            <div className="bg-[#13161C] border border-[#1D9E75]/8 rounded-xl p-5 flex flex-col gap-3">
+            <div className="bg-[#13161C] border-2 border-[#1D9E75]/8 rounded-xl p-5 flex flex-col gap-3">
               <div>
                 <p className="font-sans text-sm text-[#E8EAF0]">Completed tasks</p>
                 <p className="mt-0.5 font-sans text-[12px] text-[#A0A8B8]/50">
@@ -459,7 +459,7 @@ export default function SettingsPage() {
                     return (
                       <div
                         key={t.id}
-                        className="flex items-center gap-3 px-4 py-2.5 rounded-lg bg-[#0D0F14] border border-white/6 group"
+                        className="flex items-center gap-3 px-4 py-2.5 rounded-lg bg-[#0D0F14] border-2 border-white/6 group"
                       >
                         <span
                           className="w-1.5 h-1.5 rounded-full shrink-0"
@@ -506,7 +506,7 @@ export default function SettingsPage() {
             </h2>
             <div
               className="bg-[#13161C] rounded-xl p-5 flex flex-col gap-4"
-              style={{ border: "1px solid rgba(216,90,48,0.18)" }}
+              style={{ border: "2px solid rgba(216,90,48,0.18)" }}
             >
               <div className="flex items-center justify-between gap-4">
                 <div>
@@ -521,7 +521,7 @@ export default function SettingsPage() {
                   )}
                   <button
                     onClick={clearTasks}
-                    className="px-4 py-2 font-sans text-sm text-[#D85A30] border border-[#D85A30]/25 rounded-lg hover:bg-[#D85A30]/8 transition-colors whitespace-nowrap"
+                    className="px-4 py-2 font-sans text-sm text-[#D85A30] border-2 border-[#D85A30]/25 rounded-lg hover:bg-[#D85A30]/8 transition-colors whitespace-nowrap"
                   >
                     Clear tasks
                   </button>
@@ -539,7 +539,7 @@ export default function SettingsPage() {
                 </div>
                 <button
                   onClick={handleSignOut}
-                  className="px-4 py-2 font-sans text-sm text-[#D85A30] border border-[#D85A30]/25 rounded-lg hover:bg-[#D85A30]/8 transition-colors whitespace-nowrap shrink-0"
+                  className="px-4 py-2 font-sans text-sm text-[#D85A30] border-2 border-[#D85A30]/25 rounded-lg hover:bg-[#D85A30]/8 transition-colors whitespace-nowrap shrink-0"
                 >
                   Sign out
                 </button>

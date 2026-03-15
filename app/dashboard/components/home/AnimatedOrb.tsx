@@ -378,7 +378,7 @@ export default function AnimatedOrb({ tasks, updateTask, addTasks, deleteTask, t
           {/* R Shift hint — centered on orb, disappears after 3 uses */}
           {showHint && state === "idle" && (
             <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-              <kbd className="font-sans text-[10px] font-medium px-2 py-1 rounded-md bg-black/30 backdrop-blur-sm border border-white/10 text-white/50">
+              <kbd className="font-sans text-[10px] font-medium px-2 py-1 rounded-md bg-black/30 backdrop-blur-sm border-2 border-white/10 text-white/50">
                 R Shift
               </kbd>
             </div>

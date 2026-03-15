@@ -82,7 +82,7 @@ export default function Home() {
   return (
     <main className="min-h-screen bg-[#0D0F14] text-[#E8EAF0] overflow-x-hidden">
       {/* ── Nav ──────────────────────────────────────────────────── */}
-      <nav className="sticky top-0 z-50 bg-[#0D0F14]/95 backdrop-blur-sm border-b border-[#1D9E75]/8">
+      <nav className="sticky top-0 z-50 bg-[#0D0F14]/95 backdrop-blur-sm border-b-2 border-[#1D9E75]/8">
         <div className="max-w-4xl mx-auto px-6 h-14 flex items-center justify-between">
           <span className="font-serif text-[1.1rem] tracking-tight text-[#E8EAF0]">
             Brain<em className="text-[#5DCAA5] italic">Dump</em>
@@ -159,7 +159,7 @@ export default function Home() {
             {STEPS.map((step, i) => (
               <div
                 key={step.number}
-                className="rounded-xl bg-[#13161C] border border-[#1D9E75]/8 px-6 py-7 flex flex-col gap-4 opacity-0 animate-fade-up"
+                className="rounded-xl bg-[#13161C] border-2 border-[#1D9E75]/8 px-6 py-7 flex flex-col gap-4 opacity-0 animate-fade-up"
                 style={{
                   animationDelay: `${460 + i * 70}ms`,
                   animationFillMode: "both",
@@ -189,7 +189,7 @@ export default function Home() {
 
       {/* ── Social proof strip ───────────────────────────────────── */}
       <div
-        className="border-t border-b border-[#1D9E75]/8 py-5 px-4 opacity-0 animate-fade-up"
+        className="border-t-2 border-b-2 border-[#1D9E75]/8 py-5 px-4 opacity-0 animate-fade-up"
         style={{ animationDelay: "650ms", animationFillMode: "both" }}
       >
         <p className="text-center font-sans text-sm text-[#A0A8B8]/45 tracking-wide">
